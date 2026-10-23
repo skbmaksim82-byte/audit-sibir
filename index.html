@@ -353,6 +353,20 @@ tbody tr.click { cursor: pointer; }
 .rrev { display: flex; gap: 8px; margin-top: 12px; }
 .rrev .btn { flex: 1; min-height: 44px; }
 .rrev .btn[aria-pressed="true"] { box-shadow: inset 0 0 0 2px currentColor; }
+
+/* ---------- статистика посещений ДП (директора) ---------- */
+.dpgrid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .dpgrid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1280px) { .dpgrid { grid-template-columns: repeat(3, 1fr); } }
+.dphead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.dphead h3 { margin: 0; font-size: 17px; }
+.dpfig { text-align: right; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; }
+.dpfig small { flex-basis: 100%; font-size: 12.5px; color: var(--ink-3); margin-top: 4px; }
+.wkbars { display: flex; align-items: flex-end; gap: 6px; height: 64px; margin-top: 8px; }
+.wk { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 3px; }
+.wk i { display: block; width: 100%; background: var(--ink); border-radius: 3px 3px 0 0; opacity: 0.85; }
+.wk b { font-family: var(--font-fig); font-size: 13px; font-weight: 600; color: var(--ink-2); line-height: 1; }
+[hidden] { display: none !important; }
 </style>
 </head>
 <body>
@@ -368,7 +382,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   "use strict";
   const D = window.AUDIT_DATA;
   const TPL = D.template;
-  const APP_VERSION = "0.2.0";
+  const APP_VERSION = "0.3.0";
   const STORE_KEY = "audit.sib.v1";
   const PASSWORD = "1234";
   const DUE_DAYS = { 1: 3, 2: 7, 3: 14 };
@@ -800,11 +814,11 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const rp = reportOf(u.store), need = !rp || rp.status === "draft" || rp.status === "returned";
       return [{ id: "home", label: "Задачи", icon: "tasks", badge: act || "" }, { id: "report", label: "Фотоотчёт", icon: "photo", badge: need && rp && rp.status === "returned" ? "!" : "" }, { id: "visits", label: "Визиты", icon: "doc" }];
     }
-    const t = [{ id: "home", label: "Регион", icon: "chart" }, { id: "rlist", label: "Фотоотчёт", icon: "photo" }, { id: "escal", label: "Эскалации", icon: "alert" }];
+    const t = [{ id: "home", label: "Регион", icon: "chart" }, { id: "stores", label: "Магазины", icon: "store" }, { id: "rlist", label: "Фотоотчёт", icon: "photo" }, { id: "escal", label: "Эскалации", icon: "alert" }];
     if (u.role === "sales") t.push({ id: "admin", label: "Настройки", icon: "gear" });
     return t;
   }
-  const currentTab = () => ({ home: "home", review: "review", dptasks: "dptasks", visits: "visits", escal: "escal", admin: "admin", rlist: "rlist", report: "report" }[route.name] || (stack[0] ? stack[0].name : "home"));
+  const currentTab = () => ({ home: "home", review: "review", dptasks: "dptasks", visits: "visits", escal: "escal", admin: "admin", rlist: "rlist", report: "report", stores: "stores" }[route.name] || (stack[0] ? stack[0].name : "home"));
 
   /* ------------------------------------------------------------ screens */
   const screens = {};
@@ -895,6 +909,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       <div class="titlerow"><div><h1><span class="code" style="font-size:22px">${x.id}</span> ${esc(x.place)}</h1><p>${esc(x.city)} · ${esc(x.div)} · ДП ${esc(DP_BY_DIV[x.div].short)}</p></div></div>
       ${vs[0] ? `<div class="verdict"><div>${scoreFig(vs[0])}<div class="sub" style="margin-top:6px">последний визит, ${dShort(vs[0].startedAt)}</div></div>
         <div class="counts"><div>${fig(vs[0].fails, { cls: vs[0].fails ? "bad" : "" })}<small>замечаний</small></div><div>${fig(ts.length)}<small>задач открыто</small></div><div>${fig(vs.length)}<small>визитов</small></div></div></div>` : `<div class="empty"><b>Визитов ещё не было</b>Первый визит задаст базовый балл магазина.</div>`}
+      ${u.role !== "dm" ? (() => { const rp = reportOf(id); return `<button class="row panel" data-rstore="${id}" style="flex-direction:row;padding:12px 14px"><span class="main"><span class="t1"><span class="name">Фотоотчёт недели</span></span><span class="t2">${weekLabel()} · ${rp ? `блоков ${readyCount(rp)} из ${RB.length}` : "не начат"}</span></span><span class="end">${rpill(rp)}</span></button>`; })() : ""}
       ${ts.length ? `<section><div class="group-h"><h2>Открытые задачи</h2><span>${ts.length}</span></div><div class="list">${ts.map(taskRow).join("")}</div></section>` : ""}
       <section><div class="group-h"><h2>Визиты</h2><span>${vs.length}</span></div>
         ${vs.length ? `<div class="list">${vs.map((v) => `<button class="row" data-visit="${v.id}"><span class="main"><span class="t1"><span class="name">${dTime(v.startedAt)}</span>${v.seed ? '<span class="pill demo">тест</span>' : ""}</span><span class="t2">${v.fails} ${plural(v.fails, "замечание", "замечания", "замечаний")}${v.crit ? " · есть критичное" : ""}${v.summary.recheck ? " · повторная проверка" : ""}</span></span><span class="end">${scoreFig(v)}</span></button>`).join("")}</div>` : `<div class="empty">Акты визитов появятся здесь после подписи.</div>`}
@@ -1448,6 +1463,64 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     });
   }
 
+
+  // ---- Директора: статистика посещений ДП, список всех магазинов, визиты ДП
+  const WEEKS = 8;
+  function dpStats(dp) {
+    const ss = D.stores.filter((x) => x.div === dp.div), ids = new Set(ss.map((x) => x.id));
+    const vs = S().visits.filter((v) => v.status === "signed" && ids.has(v.store)).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+    const month = ss.filter((x) => visitedThisMonth(x.id)), left = ss.filter((x) => !visitedThisMonth(x.id));
+    const w0 = parseYmd(weekStart()).getTime(), weeks = Array(WEEKS).fill(0);
+    for (const v of vs) { const k = Math.round((w0 - parseYmd(weekStart(v.startedAt)).getTime()) / (7 * DAY)); if (k >= 0 && k < WEEKS) weeks[WEEKS - 1 - k]++; }
+    const recent = vs.filter((v) => daysBetween(v.startedAt, new Date()) <= 90);
+    const sc = recent.filter((v) => v.score !== null).map((v) => v.score);
+    const mins = recent.filter((v) => v.endedAt).map((v) => (new Date(v.endedAt) - new Date(v.startedAt)) / 6e4);
+    const now = new Date(), frac = now.getDate() / new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const cover = ss.length ? month.length / ss.length : 1;
+    return { dp, ss, vs, month, left, weeks, last: vs[0] || null, cnt90: recent.length, avgScore: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null,
+      avgMin: mins.length ? mins.reduce((a, b) => a + b, 0) / mins.length : null, fails: recent.length ? recent.reduce((a, v) => a + v.fails, 0) / recent.length : null,
+      red: recent.filter((v) => v.crit || v.score < 75).length, behind: cover < frac - 0.15 && left.length > 0, cover };
+  }
+  const visitRow = (v, who) => `<button class="row" data-visit="${v.id}"><span class="main"><span class="t1"><span class="code">${v.store}</span><span class="name">${esc(STORES[v.store].place)}</span>${v.seed ? '<span class="pill demo">тест</span>' : ""}</span><span class="t2">${dTime(v.startedAt)}${who ? " · " + esc(userBy(v.dp).short) : ""} · ${v.fails} ${plural(v.fails, "замечание", "замечания", "замечаний")}${v.crit ? " · критичное" : ""}${v.endedAt ? ` · ${Math.round((new Date(v.endedAt) - new Date(v.startedAt)) / 6e4)} мин` : ""}</span></span><span class="end">${scoreFig(v)}</span></button>`;
+  function dpCard(st) {
+    const max = Math.max(1, ...st.weeks);
+    return `<div class="panel dpcard">
+      <div class="dphead"><div><h3>${esc(st.dp.short)}</h3><p class="sub">${esc(st.dp.div)} · ${st.ss.length} ${plural(st.ss.length, "магазин", "магазина", "магазинов")}</p></div>
+        <div class="dpfig">${fig(st.month.length, { cls: st.behind ? "bad" : "" })}<span class="sub" style="font-family:var(--font-fig);font-weight:600;font-size:20px"> / ${st.ss.length}</span><small>визит в ${monthLoc()}</small></div></div>
+      <div class="progress" role="img" aria-label="Охват магазинов визитом в этом месяце ${st.month.length} из ${st.ss.length}"><i style="transform:scaleX(${st.cover.toFixed(3)})"></i></div>
+      ${st.behind ? `<span class="pill bad" style="align-self:flex-start">отстаёт от графика</span>` : ""}
+      <dl class="kv">
+        <dt>Средний балл проверок</dt><dd>${st.avgScore === null ? "—" : `<span style="color:var(--${scoreCls(st.avgScore, false)});font-weight:700">${st.avgScore.toFixed(1).replace(".", ",")} %</span>`}</dd>
+        <dt>Визитов за 90 дней</dt><dd>${st.cnt90}${st.red ? ` · <span style="color:var(--bad)">красных ${st.red}</span>` : ""}</dd>
+        <dt>Время на визит (норма ${TPL.sections.reduce((a, x) => a + x.min, 0)})</dt><dd>${st.avgMin === null ? "—" : `${Math.round(st.avgMin)} мин`}</dd>
+        <dt>Замечаний на визит</dt><dd>${st.fails === null ? "—" : st.fails.toFixed(1).replace(".", ",")}</dd>
+        <dt>Последний визит</dt><dd>${st.last ? `${dShort(st.last.startedAt)}${daysBetween(st.last.startedAt, new Date()) ? ` · ${daysBetween(st.last.startedAt, new Date())} дн. назад` : " · сегодня"}` : "не было"}</dd>
+      </dl>
+      <div><span class="sub">Визитов по неделям, последние ${WEEKS}</span>
+        <div class="wkbars" role="img" aria-label="Визиты по неделям: ${st.weeks.join(", ")}">${st.weeks.map((n, i) => `<span class="wk"><i style="height:${Math.max(n ? 12 : 3, Math.round((n / max) * 100))}%"></i><b>${n}</b></span>`).join("")}</div></div>
+      ${st.left.length ? `<div><span class="sub">Ещё без визита в ${monthLoc()}: ${st.left.length}</span><div class="chips" style="margin-top:6px">${st.left.slice(0, 12).map((x) => `<button class="chip" data-store="${x.id}">${x.id}</button>`).join("")}${st.left.length > 12 ? `<span class="sub">и ещё ${st.left.length - 12}</span>` : ""}</div></div>` : `<span class="pill ok" style="align-self:flex-start">все магазины посещены</span>`}
+      <button class="btn block" data-dpvisits="${esc(st.dp.div)}">Все проверки ДП · ${st.vs.length}</button>
+    </div>`;
+  }
+  screens.dpvisits = ({ div }) => {
+    const dp = DP_BY_DIV[div], st = dpStats(dp);
+    const body = `<button class="back" data-back>${icon("left", "sm")}Назад</button>
+      <div class="titlerow"><div><h1>Проверки ${esc(dp.short)}</h1><p>${esc(div)} · ${st.vs.length} ${plural(st.vs.length, "визит", "визита", "визитов")}. Откройте любой — увидите заполненный чек-лист.</p></div></div>
+      <div class="list">${st.vs.slice(0, 120).map((v) => visitRow(v, false)).join("")}</div>`;
+    return { title: "Проверки ДП", sub: `${dp.short} · ${div}`, body };
+  };
+  let sDiv = "all";
+  screens.stores = () => {
+    const u = me(), divs = D.dps.map((d) => d.div);
+    const ss = D.stores.filter((x) => sDiv === "all" || x.div === sDiv).sort((a, b) => a.id.localeCompare(b.id));
+    const body = `<div class="titlerow"><div><h1>Все магазины</h1><p>${ss.length} ${plural(ss.length, "магазин", "магазина", "магазинов")} · откройте магазин, чтобы увидеть чек-листы и фотоотчёт</p></div></div>
+      <div class="seg" role="group" aria-label="Подразделение">${[["all", "Весь регион"], ...divs.map((d) => [d, d])].map(([k, l]) => `<button data-sdiv="${esc(k)}" aria-pressed="${sDiv === k}">${esc(l)}</button>`).join("")}</div>
+      <div class="field"><label for="sq">Поиск по коду или названию</label><input class="input" id="sq" type="search" inputmode="search" autocomplete="off" enterkeyhint="search" placeholder="Например: 11813 или Сан-Сити"></div>
+      <div class="list" id="storeList">${ss.map((x) => { const v = lastVisit(x.id), rp = reportOf(x.id); return `<button class="row" data-store="${x.id}" data-search="${esc((x.id + " " + x.city + " " + x.place).toLowerCase())}"><span class="main"><span class="t1"><span class="code">${x.id}</span><span class="name">${esc(x.place)}</span></span><span class="t2">${esc(x.city)} · ${esc(DP_BY_DIV[x.div].short)} · ${v ? "визит " + dShort(v.startedAt) : "визитов не было"} · фото: ${reportLate(rp) ? "просрочен" : RSTATUS[rstat(rp)].label}</span></span><span class="end">${scoreFig(v)}</span></button>`; }).join("")}</div>
+      <div class="empty" id="storeNone" hidden><b>Ничего не найдено</b>Проверьте код или название.</div>`;
+    return { title: "Магазины", sub: `${ROLE_NAME[u.role]} · регион СИБ`, body };
+  };
+
   // ---- Region (директор по продажам / региона)
   let regionDiv = "all";
   function regionHome(u) {
@@ -1478,6 +1551,10 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         <button data-tab="escal"><span>${fig(od.length, { cls: od.length ? "bad" : "ok" })}</span><span class="lbl">задач просрочено</span></button>
       </div>
       ${(() => { const rr = stores.map((s) => reportOf(s.id)); const acc = rr.filter((r) => rstat(r) === "accepted").length, rev = rr.filter((r) => rstat(r) === "review").length; return `<button class="row panel" data-tab="rlist" style="flex-direction:row;padding:12px 14px"><span class="main"><span class="t1"><span class="name">Фотоотчёт недели</span></span><span class="t2">${weekLabel()} · принято ${acc}, на проверке ${rev}, не сдано ${stores.length - acc - rev}</span></span><span class="end">${icon("right", "chev")}</span></button>`; })()}
+      <section><div class="group-h"><h2>Посещения магазинов ДП</h2><span>${monthName()}</span></div>
+        <div class="dpgrid">${D.dps.filter((d) => regionDiv === "all" || d.div === regionDiv).map((d) => dpCard(dpStats(d))).join("")}</div></section>
+      <section><div class="group-h"><h2>Последние проверки</h2><span>чек-лист ДП</span></div>
+        <div class="list">${S().visits.filter((v) => v.status === "signed" && inScope(STORES[v.store])).sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, 8).map((v) => visitRow(v, true)).join("")}</div></section>
       <section><div class="group-h"><h2>Подразделения</h2><span>5 ДП</span></div>
         <div class="tablewrap div-table"><table>
           <thead><tr><th>Подразделение</th><th class="num">Визит в месяце</th><th class="num">Средний балл</th><th class="num">В красной зоне</th><th class="num">Задачи у ДМ</th><th class="num">Просрочено</th></tr></thead>
@@ -1548,6 +1625,8 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const st = t.closest("[data-store]:not([data-act])"); if (st) return go("store", { id: st.dataset.store });
       const vi = t.closest("[data-visit]"); if (vi) return go("act", { id: vi.dataset.visit });
       const tk = t.closest("[data-task]"); if (tk) return go("task", { id: tk.dataset.task });
+      const sd = t.closest("[data-sdiv]"); if (sd) { sDiv = sd.dataset.sdiv; return render(false); }
+      const dv2 = t.closest("[data-dpvisits]"); if (dv2) return go("dpvisits", { div: dv2.dataset.dpvisits });
       const rs = t.closest("[data-rstore]"); if (rs) return go("rstore", { id: rs.dataset.rstore });
       const rb = t.closest("[data-rblock]"); if (rb) return go("rblock", { n: Number(rb.dataset.rblock) });
       const rf = t.closest("[data-rfilter]"); if (rf) { rFilter = rFilter === rf.dataset.rfilter && rf.closest(".strip") ? "all" : rf.dataset.rfilter; return render(false); }
@@ -1562,6 +1641,12 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       if (a.dataset.act === "reset") return confirmReset();
     });
     root.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("tr.click")) e.target.click(); });
+    root.addEventListener("input", (e) => {
+      if (e.target.id !== "sq") return;
+      const q = e.target.value.trim().toLowerCase(); let n = 0;
+      root.querySelectorAll("#storeList [data-search]").forEach((r) => { const hit = !q || r.dataset.search.includes(q); r.hidden = !hit; if (hit) n++; });
+      const none = $("#storeNone", root); if (none) none.hidden = n > 0;
+    });
   }
   function menu() {
     const u = me();
