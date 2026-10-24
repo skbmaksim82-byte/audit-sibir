@@ -316,7 +316,7 @@ tbody tr.click { cursor: pointer; }
 .lightbox[data-state="closed"] { opacity: 0; }
 .lightbox img { max-width: 100%; max-height: 100%; border-radius: 6px; }
 .lightbox button { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); right: 10px; color: #fff; }
-.toast { position: fixed; z-index: 60; left: 50%; bottom: calc(var(--bar-h) + 20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 550; box-shadow: var(--shadow-float); max-width: calc(100vw - 32px); transition: transform 240ms var(--ease-out), opacity 240ms var(--ease-out); }
+.toast { pointer-events: none; position: fixed; z-index: 60; left: 50%; bottom: calc(var(--bar-h) + 20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 550; box-shadow: var(--shadow-float); max-width: calc(100vw - 32px); transition: transform 240ms var(--ease-out), opacity 240ms var(--ease-out); }
 .toast[data-state="closed"] { opacity: 0; transform: translate(-50%, 12px); }
 
 /* ---------- login ---------- */
@@ -366,6 +366,53 @@ tbody tr.click { cursor: pointer; }
 .wk { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 3px; }
 .wk i { display: block; width: 100%; background: var(--ink); border-radius: 3px 3px 0 0; opacity: 0.85; }
 .wk b { font-family: var(--font-fig); font-size: 13px; font-weight: 600; color: var(--ink-2); line-height: 1; }
+
+/* ---------- проверка руководителей, комментарии, синхронизация ---------- */
+.syncpill { flex: 0 1 auto; min-width: 0; max-width: 46%; height: 26px; padding: 0 10px; border-radius: 13px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: color-mix(in srgb, var(--tag-ink) 10%, transparent); color: var(--tag-ink); }
+.syncpill.offline, .syncpill.error { background: var(--paper); color: var(--bad); }
+.thread { display: flex; flex-direction: column; gap: 8px; }
+.cmt { background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; }
+.cmt.r-sales, .cmt.r-region { background: color-mix(in srgb, var(--tag) 28%, var(--paper)); border-color: color-mix(in srgb, var(--tag) 70%, var(--line)); }
+.cmt .cm-h { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--ink-2); margin-bottom: 2px; }
+.cmt .cm-h b { color: var(--ink); }
+.cmt p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.cmtbtn { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 18px; border: 1px solid var(--line-2); background: var(--paper); font-size: 13px; font-weight: 600; color: var(--ink-2); cursor: pointer; transition: transform 120ms var(--ease-out), border-color 150ms ease; }
+.cmtbtn:active { transform: scale(0.97); }
+.rvrow { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); }
+.rv-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rv-h b { margin-right: auto; font-size: 14px; }
+.rv-s { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.rvrow p { white-space: pre-wrap; }
+.stars { display: inline-flex; gap: 3px; }
+.stars i { width: 14px; height: 14px; border-radius: 3px; background: var(--line); }
+.stars i.on { background: var(--ok); }
+.score5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.score5 button { min-height: 60px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--paper); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; transition: background-color 150ms ease, transform 120ms var(--ease-out); }
+.score5 button:active { transform: scale(0.96); }
+.score5 button b { font-family: var(--font-fig); font-size: 22px; line-height: 1; }
+.score5 button span { font-size: 10.5px; color: var(--ink-2); line-height: 1.15; text-align: center; }
+.score5 button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.score5 button[aria-pressed="true"] span { color: color-mix(in srgb, var(--paper) 75%, var(--ink)); }
+.cl-list { overflow: visible; }
+.cl + .cl { border-top: 1px solid var(--line); }
+.cl summary { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 14px; cursor: pointer; list-style: none; }
+.cl summary::-webkit-details-marker { display: none; }
+.cl summary .cl-t { flex: 1; min-width: 0; font-weight: 600; }
+.cl summary .fig { font-size: 20px; }
+.cl summary .pill .icon { width: 14px; height: 14px; }
+.cl[open] summary { border-bottom: 1px solid var(--line); background: var(--paper-2); }
+.cl-i { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.cl-i + .cl-i { border-top: 1px dashed var(--line); }
+.cl-i.is-fail { background: color-mix(in srgb, var(--bad-tint) 45%, transparent); }
+.cl-i.flash { animation: flash 1.2s var(--ease-out); }
+@keyframes flash { from { background: color-mix(in srgb, var(--tag) 60%, transparent); } }
+.cl-q { display: grid; grid-template-columns: 38px 1fr auto; gap: 8px; align-items: start; font-size: 14px; }
+.cl-q .code { font-size: 14px; color: var(--ink-3); }
+.cl-f { display: flex; flex-direction: column; gap: 6px; padding-left: 46px; font-size: 14px; }
+.cl-i .thread { padding-left: 46px; }
+@media (max-width: 380px) { .cl-f, .cl-i .thread { padding-left: 0; } }
+@media (hover: hover) and (pointer: fine) { .cmtbtn:hover { border-color: var(--ink-3); color: var(--ink); } .score5 button:hover { border-color: var(--ink-3); } }
+@media (prefers-reduced-motion: reduce) { .cl-i.flash { animation: none; } }
 
 /* ---------- сводный отчёт директоров: белые карточки на сером поле, шкала зелёный → жёлтый → оранжевый ---------- */
 :root {
@@ -569,7 +616,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   "use strict";
   const D = window.AUDIT_DATA;
   const TPL = D.template;
-  const APP_VERSION = "0.4.0";
+  const APP_VERSION = "0.5.0";
   const STORE_KEY = "audit.sib.v1";
   const PASSWORD = "1234";
   const DUE_DAYS = { 1: 3, 2: 7, 3: 14 };
@@ -648,11 +695,23 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     undo: '<path d="M9 7L5 11l4 4"/><path d="M5 11h9a5 5 0 010 10h-3"/>',
     report: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M7.5 15l3-3.2 2.5 2.2 3.5-4.5"/>',
     down: '<path d="M6.5 9.5l5.5 5.5 5.5-5.5"/>',
+    chat: '<path d="M5 6.5A1.5 1.5 0 016.5 5h11A1.5 1.5 0 0119 6.5v8a1.5 1.5 0 01-1.5 1.5H10l-4 3.5V16h0.5A1.5 1.5 0 015 14.5z"/>',
   };
   const icon = (n, cls = "") => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
   const MARK = `<svg class="mark" viewBox="0 0 30 30" aria-hidden="true"><path d="M4 6.5h15.5l6.5 8.5-6.5 8.5H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="19" cy="15" r="1.9" fill="currentColor"/><path d="M8.5 15l2.3 2.3 4.2-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-  /* ------------------------------------------------------------ photo store (IndexedDB) */
+  /* ------------------------------------------------------------ сервер пилота: режим определяется при запуске */
+  // Есть сервер (api/health отвечает) — данные общие для всех ролей. Нет (GitHub Pages, файл) — демо в браузере.
+  const SRV = { on: false, base: "api/", stores: null, status: "ok" };
+  async function srvFetch(path, opt = {}) {
+    const s = Store.get(), token = s && s.session && s.session.token;
+    const r = await fetch(SRV.base + path, { ...opt, cache: "no-store", headers: { ...(opt.headers || {}), ...(token ? { Authorization: "Bearer " + token } : {}) } });
+    if (r.status === 401 && token) { Sync.signedOut(); throw new Error("auth"); }
+    return r;
+  }
+  const errText = async (r, fallback) => { try { const j = await r.json(); return (j && j.detail) || fallback; } catch (e) { return fallback; } };
+
+  /* ------------------------------------------------------------ photo store (IndexedDB + сервер) */
   const Photos = (() => {
     const mem = new Map();
     let dbp = null;
@@ -668,19 +727,42 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       });
       return dbp;
     };
+    const idbPut = async (id, dataUrl) => { const db = await open(); if (!db) return; await new Promise((res) => { try { const tx = db.transaction("p", "readwrite"); tx.objectStore("p").put(dataUrl, id); tx.oncomplete = tx.onerror = () => res(); } catch (e) { res(); } }); };
+    const idbGet = async (id) => { const db = await open(); if (!db) return null; return new Promise((res) => { try { const r = db.transaction("p").objectStore("p").get(id); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); } catch (e) { res(null); } }); };
+    const toBlob = (dataUrl) => { const [h, b] = dataUrl.split(","); const bin = atob(b); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type: (h.match(/data:([^;]+)/) || [])[1] || "image/jpeg" }); };
+    const toDataUrl = (blob) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(null); fr.readAsDataURL(blob); });
+    const pending = new Map(); // id → promise of a server fetch already in flight
     return {
-      async put(id, dataUrl) {
+      async put(id, dataUrl, store) {
         mem.set(id, dataUrl);
-        const db = await open(); if (!db) return;
-        await new Promise((res) => { try { const tx = db.transaction("p", "readwrite"); tx.objectStore("p").put(dataUrl, id); tx.oncomplete = tx.onerror = () => res(); } catch (e) { res(); } });
+        await idbPut(id, dataUrl);
+        if (SRV.on && store) { const q = Store.get().sync.photoQ; if (!q.some((x) => x.id === id)) q.push({ id, store }); Store.saveLocal(); }
       },
       async get(id) {
         if (mem.has(id)) return mem.get(id);
-        const db = await open(); if (!db) return null;
-        return new Promise((res) => { try { const r = db.transaction("p").objectStore("p").get(id); r.onsuccess = () => { if (r.result) mem.set(id, r.result); res(r.result || null); }; r.onerror = () => res(null); } catch (e) { res(null); } });
+        const local = await idbGet(id);
+        if (local) { mem.set(id, local); return local; }
+        if (!SRV.on) return null;
+        if (!pending.has(id)) pending.set(id, (async () => {
+          try { const r = await srvFetch("photos/" + id); if (!r.ok) return null; const url = await toDataUrl(await r.blob()); if (url) { mem.set(id, url); idbPut(id, url); } return url; }
+          catch (e) { return null; } finally { setTimeout(() => pending.delete(id), 5000); }
+        })());
+        return pending.get(id);
+      },
+      async flush() { // отправить на сервер снятые фото, по одному
+        const q = Store.get().sync.photoQ;
+        while (q.length) {
+          const { id, store } = q[0];
+          const url = mem.get(id) || (await idbGet(id));
+          if (!url) { q.shift(); continue; }
+          const r = await srvFetch(`photos/${id}?store=${encodeURIComponent(store)}`, { method: "POST", headers: { "Content-Type": toBlob(url).type }, body: toBlob(url) });
+          if (!r.ok && r.status !== 409) throw new Error(await errText(r, "Фото не отправилось"));
+          q.shift(); Store.saveLocal();
+        }
       },
       async del(id) {
         mem.delete(id);
+        if (SRV.on) { const q = Store.get().sync.photoQ, i = q.findIndex((x) => x.id === id); if (i >= 0) q.splice(i, 1); }
         const db = await open(); if (!db) return;
         try { db.transaction("p", "readwrite").objectStore("p").delete(id); } catch (e) { /* ignore */ }
       },
@@ -693,7 +775,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     for (const img of root.querySelectorAll("img[data-photo]")) {
       if (img.src) continue;
       const url = await Photos.get(img.dataset.photo);
-      if (url) img.src = url; else img.alt = "Фото не найдено на этом устройстве";
+      if (url) img.src = url; else img.alt = SRV.on ? "Фото ещё не загружено или удалено по сроку хранения" : "Фото не найдено на этом устройстве";
     }
   }
 
@@ -724,17 +806,112 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   }
 
   /* ------------------------------------------------------------ state store */
+  const COLS = ["visits", "tasks", "reports", "reviews", "comments"];
+  const SRV_KEY = "audit.sib.srv1";
+  const emptySrv = () => ({ ver: 1, mode: "srv", seeded: false, session: null, visits: [], tasks: [], reports: [], reviews: [], comments: [], drafts: {}, sync: { seq: 0, vers: {}, hashes: {}, photoQ: [] } });
   const Store = (() => {
     let s = null;
-    const load = () => { try { const raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } };
-    const save = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); return true; } catch (e) { toast("Не хватает места в браузере: часть данных не сохранилась"); return false; } };
+    const key = () => (SRV.on ? SRV_KEY : STORE_KEY);
+    const load = () => { try { const raw = localStorage.getItem(key()); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } };
+    const saveLocal = () => { try { localStorage.setItem(key(), JSON.stringify(s)); return true; } catch (e) { toast("Не хватает места в браузере: часть данных не сохранилась"); return false; } };
     return {
-      init() { s = load(); if (!s || s.ver !== 1) { s = seed(); save(); } else if (!s.reports) { s.reports = seedReports(); save(); } return s; },
+      init() {
+        s = load();
+        if (SRV.on) { if (!s || s.ver !== 1 || s.mode !== "srv") s = emptySrv(); }
+        else if (!s || s.ver !== 1) s = seed();
+        else if (!s.reports) s.reports = seedReports();
+        for (const c of COLS) if (!Array.isArray(s[c])) s[c] = [];
+        saveLocal(); return s;
+      },
       get: () => s,
-      save,
-      async reset() { await Photos.clear(); s = seed(); s.session = null; save(); },
+      save() { const ok = saveLocal(); if (SRV.on) Sync.soon(); return ok; },
+      saveLocal,
+      async wipe() { await Photos.clear(); s = emptySrv(); saveLocal(); }, // выход в режиме сервера: на телефоне не остаётся чужих данных
+      async reset() { await Photos.clear(); s = seed(); s.session = null; saveLocal(); },
     };
   })();
+
+  /* ------------------------------------------------------------ синхронизация с сервером */
+  const Sync = (() => {
+    let chain = Promise.resolve(), soonT = null, pollT = null, needRender = false, firstAt = 0;
+    const hs = (str) => { let x = 0; for (let i = 0; i < str.length; i++) x = (x * 31 + str.charCodeAt(i)) | 0; return x + ":" + str.length; };
+    const st = () => S().sync;
+    const dirtyDocs = () => COLS.flatMap((kind) => S()[kind].filter((d) => st().hashes[kind + ":" + d.id] !== hs(JSON.stringify(d))).map((d) => [kind, d]));
+    const replaceInPlace = (kind, data) => { // экраны держат ссылки на объекты — обновляем на месте
+      const arr = S()[kind], cur = arr.find((x) => x.id === data.id);
+      if (!cur) { arr.push(data); return; }
+      for (const k of Object.keys(cur)) delete cur[k];
+      Object.assign(cur, data);
+    };
+    function setStatus(s) {
+      SRV.status = s;
+      const el = document.getElementById("syncPill"); if (!el) return;
+      const n = dirtyDocs().length + st().photoQ.length;
+      el.hidden = s === "ok" && !n;
+      el.textContent = s === "offline" ? `нет связи${n ? ` · ждёт отправки ${n}` : ""}` : s === "error" ? "ошибка сохранения" : n ? `отправка… ${n}` : "";
+      el.className = "syncpill " + s;
+    }
+    const quiet = () => { // не перерисовывать под руками у человека
+      const a = document.activeElement;
+      return ["visit", "summary"].includes(route.name) || document.querySelector(".sheet") || (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) || (route.name === "task" && screens.task.draft && (screens.task.draft.photos.length || screens.task.draft.comment));
+    };
+    function maybeRender() { if (quiet()) { needRender = true; return; } needRender = false; render(false); }
+    async function push() {
+      if (!S().session || !S().session.token) return;
+      await Photos.flush();
+      let conflict = false;
+      for (const [kind, doc] of dirtyDocs()) {
+        const k = kind + ":" + doc.id, json = JSON.stringify(doc);
+        const r = await srvFetch(`docs/${kind}/${encodeURIComponent(doc.id)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ver: st().vers[k] || 0, data: doc }) });
+        if (r.ok) { const j = await r.json(); st().vers[k] = j.ver; st().hashes[k] = hs(json); continue; }
+        if (r.status === 409) {
+          const j = await r.json().catch(() => ({}));
+          if (j && j.data) { replaceInPlace(kind, j.data); st().vers[k] = j.ver; st().hashes[k] = hs(JSON.stringify(j.data)); conflict = true; continue; }
+          toast((j && j.detail) || "Запись не сохранилась: её изменили"); st().hashes[k] = hs(json); continue;
+        }
+        const msg = await errText(r, "Сервер не принял изменения");
+        if (r.status === 403 || r.status === 400) { st().hashes[k] = hs(json); toast(msg); continue; } // не повторять бесконечно
+        throw new Error(msg);
+      }
+      Store.saveLocal();
+      if (conflict) { toast("Запись изменили на другом устройстве — показана свежая версия"); maybeRender(); }
+    }
+    async function pull() {
+      if (!S().session || !S().session.token) return;
+      const r = await srvFetch(`sync?since=${st().seq}`);
+      if (!r.ok) throw new Error(await errText(r, "Сервер не ответил"));
+      const j = await r.json();
+      let changed = false;
+      for (const d of j.docs) {
+        const k = d.kind + ":" + d.id;
+        if (!COLS.includes(d.kind) || d.ver <= (st().vers[k] || 0)) continue;
+        const local = S()[d.kind].find((x) => x.id === d.id);
+        if (local && st().hashes[k] !== hs(JSON.stringify(local))) continue; // есть неотправленная правка — решит push
+        replaceInPlace(d.kind, d.data); st().vers[k] = d.ver; st().hashes[k] = hs(JSON.stringify(d.data)); changed = true;
+      }
+      st().seq = j.seq; Store.saveLocal();
+      if (changed) maybeRender();
+    }
+    const run = (fn) => (chain = chain.then(fn).then(() => setStatus("ok"), (e) => { if (e && e.message === "auth") return; setStatus(navigator.onLine === false || e instanceof TypeError ? "offline" : "error"); if (!(e instanceof TypeError)) console.warn(e); }));
+    return {
+      soon() { // пауза 0,7 с после правки, но не дольше 5 с подряд — при быстрой работе данные всё равно уходят
+        const t = Date.now(); if (!firstAt) firstAt = t;
+        clearTimeout(soonT); setStatus(SRV.status);
+        soonT = setTimeout(() => { firstAt = 0; run(push); }, Math.max(0, Math.min(700, 5000 - (t - firstAt))));
+      },
+      now() { return run(async () => { await push(); await pull(); }); },
+      start() {
+        clearInterval(pollT); pollT = setInterval(() => { if (document.visibilityState === "visible") this.now(); }, 20000);
+        return this.now();
+      },
+      stop() { clearInterval(pollT); clearTimeout(soonT); },
+      paint() { setStatus(SRV.status); if (needRender && !quiet()) { needRender = false; } },
+      pendingRender: () => needRender,
+      async signedOut() { this.stop(); await Store.wipe(); stack.length = 0; route = { name: "home", p: {} }; render(true); toast("Сессия закончилась — войдите снова"); },
+    };
+  })();
+  document.addEventListener("visibilitychange", () => { if (SRV.on && document.visibilityState === "visible" && S() && S().session) Sync.now(); });
+  window.addEventListener("online", () => { if (SRV.on && S() && S().session) Sync.now(); });
 
   /* ------------------------------------------------------------ users */
   const STORES = Object.fromEntries(D.stores.map((x) => [x.id, x]));
@@ -742,11 +919,11 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   const USERS = [
     ...D.dps,
     ...D.stores.map((x) => ({ login: "dm" + x.id, role: "dm", name: `Директор магазина ${x.id}`, short: `ДМ ${x.id}`, store: x.id, div: x.div })),
-    { login: "sales", role: "sales", name: "Директор по продажам", short: "Директор по продажам" },
-    { login: "region", role: "region", name: "Директор региона", short: "Директор региона" },
+    { login: "sales", role: "sales", name: "Директор по продажам региона", short: "ДПР" },
+    { login: "region", role: "region", name: "Директор региона", short: "ДР" },
   ];
   const userBy = (login) => USERS.find((u) => u.login === login);
-  const ROLE_NAME = { dp: "ДП", dm: "ДМ", sales: "Директор по продажам · админ", region: "Директор региона" };
+  const ROLE_NAME = { dp: "ДП", dm: "ДМ", sales: "ДПР · директор по продажам", region: "ДР · директор региона" };
 
   /* ------------------------------------------------------------ template helpers */
   const ALL_ITEMS = TPL.sections.flatMap((s) => s.items.map((it) => ({ ...it, sec: s.n, secTitle: s.title })));
@@ -921,6 +1098,106 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   }
   const visitedThisMonth = (storeId) => { const v = lastVisit(storeId); return !!v && sameMonth(v.startedAt); };
 
+  /* ------------------------------------------------------------ проверка руководителей и комментарии */
+  // Порядок: ДП подписал визит → ДПР оценивает → ДР оценивает. Комментарий можно оставить к любому действию ДП и ДМ.
+  const SCORE5 = { 1: "плохо", 2: "слабо", 3: "удовлетворительно", 4: "хорошо", 5: "отлично" };
+  const reviewBy = (vid, role) => S().reviews.find((r) => r.id === `rv-${vid}-${role}`) || null;
+  const vstage = (v) => (!reviewBy(v.id, "sales") ? "sales" : !reviewBy(v.id, "region") ? "region" : "done");
+  const VSTAGE = { sales: { label: "ждёт ДПР", cls: "wait" }, region: { label: "ждёт ДР", cls: "wait" }, done: { label: "проверен ДПР и ДР", cls: "ok" } };
+  const stagePill = (v) => `<span class="pill ${VSTAGE[vstage(v)].cls}">${VSTAGE[vstage(v)].label}</span>`;
+  const waitingFor = (role) => S().visits.filter((v) => v.status === "signed" && STORES[v.store] && D.stores.includes(STORES[v.store]) && vstage(v) === role).sort((a, b) => a.endedAt.localeCompare(b.endedAt));
+  const commentsOf = (target) => S().comments.filter((c) => c.target === target).sort((a, b) => a.at.localeCompare(b.at));
+  const whoShort = (login) => (userBy(login) || {}).short || login;
+  const seenKey = () => "audit.seen." + (me() ? me().login : "");
+  const seenAt = () => { try { return localStorage.getItem(seenKey()) || ""; } catch (e) { return ""; } };
+  const unreadComments = () => { const u = me(), t = seenAt(); return S().comments.filter((c) => c.by !== u.login && c.at > t && storesInScope(u).some((x) => x.id === c.store)); };
+  const stars = (n) => `<span class="stars" role="img" aria-label="${n} из 5">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span>`;
+
+  function thread(target, store, label) {
+    const cs = commentsOf(target);
+    return `<div class="thread">${cs.map((c) => `<div class="cmt r-${(userBy(c.by) || {}).role || ""}"><div class="cm-h"><b>${esc(whoShort(c.by))}</b><span>${dTime(c.at)}</span></div><p>${esc(c.text)}</p></div>`).join("")}
+      <button class="cmtbtn" data-cmt="${esc(target)}" data-cmt-store="${esc(store)}" data-cmt-label="${esc(label)}">${icon("chat", "sm")}${cs.length ? `Ответить · ${cs.length}` : "Комментировать"}</button></div>`;
+  }
+  function openComment(target, store, label) {
+    sheet(`<h2>Комментарий</h2><p class="sub">${esc(label)}</p>
+      <div class="field"><label for="cmtx">Текст</label><textarea class="input" id="cmtx" rows="4" placeholder="Что важно увидеть ДП и ДМ"></textarea></div><p class="err" id="cmtErr" hidden></p>
+      <button class="btn primary block" data-go>${icon("send", "sm")}Отправить</button>`, (sh, close) => {
+      sh.querySelector("[data-go]").addEventListener("click", () => {
+        const text = sh.querySelector("#cmtx").value.trim();
+        if (!text) { const er = sh.querySelector("#cmtErr"); er.hidden = false; er.textContent = "Напишите текст комментария."; return; }
+        S().comments.push({ id: uid("c"), target, store, label, by: me().login, at: new Date().toISOString(), text });
+        Store.save(); close(); toast("Комментарий отправлен"); render(false);
+      });
+    });
+  }
+  function openReview(v) {
+    const u = me(), mine = reviewBy(v.id, u.role);
+    let score = mine ? mine.score : 0;
+    sheet(`<h2>${u.role === "sales" ? "Оценка ДПР" : "Оценка ДР"}</h2><p class="sub"><span class="code">${v.store}</span> ${esc(STORES[v.store].place)} · визит ${dTime(v.startedAt)} · ${esc(whoShort(v.dp))}</p>
+      <div class="field"><span class="lbl">Оценка посещения</span><div class="score5">${[1, 2, 3, 4, 5].map((i) => `<button data-s="${i}" aria-pressed="${score === i}"><b>${i}</b><span>${SCORE5[i]}</span></button>`).join("")}</div></div>
+      <div class="field"><label for="rvc">Комментарий для ДП и ДМ</label><textarea class="input" id="rvc" rows="4" placeholder="Что хорошо, что исправить, на что обратить внимание">${esc(mine ? mine.comment : "")}</textarea><span class="hint">При оценке 3 и ниже комментарий обязателен.</span></div>
+      <p class="err" id="rvErr" hidden></p>
+      <button class="btn primary block" data-go>${icon("check", "sm")}${mine ? "Сохранить оценку" : u.role === "sales" ? "Оценить и передать ДР" : "Оценить и завершить проверку"}</button>`, (sh, close) => {
+      sh.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-s]");
+        if (b) { score = +b.dataset.s; sh.querySelectorAll("[data-s]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); return; }
+        if (!e.target.closest("[data-go]")) return;
+        const comment = sh.querySelector("#rvc").value.trim(), er = sh.querySelector("#rvErr");
+        if (!score) { er.hidden = false; er.textContent = "Выберите оценку от 1 до 5."; return; }
+        if (score <= 3 && !comment) { er.hidden = false; er.textContent = "При оценке 3 и ниже напишите, что не так."; sh.querySelector("#rvc").focus(); return; }
+        const rv = { id: `rv-${v.id}-${u.role}`, visit: v.id, store: v.store, role: u.role, by: u.login, score, comment, at: mine ? mine.at : new Date().toISOString(), editedAt: mine ? new Date().toISOString() : undefined };
+        if (mine) Object.assign(mine, rv); else S().reviews.push(rv);
+        Store.save(); close(); toast(mine ? "Оценка обновлена" : u.role === "sales" ? "Оценка сохранена, визит передан ДР" : "Проверка завершена"); render(false);
+      });
+    });
+  }
+  function reviewPanel(v) {
+    const u = me(), stage = vstage(v);
+    const row = (role, title) => {
+      const r = reviewBy(v.id, role);
+      return `<div class="rvrow"><div class="rv-h"><b>${title}</b>${r ? `${stars(r.score)}<span class="rv-s">${r.score} · ${SCORE5[r.score]}</span>` : `<span class="pill wait">${role === stage ? "ждёт оценки" : "после ДПР"}</span>`}</div>
+        ${r ? `${r.comment ? `<p>${esc(r.comment)}</p>` : ""}<span class="hint">${esc(whoShort(r.by))} · ${dTime(r.editedAt || r.at)}${r.editedAt ? " · изменено" : ""}</span>` : ""}</div>`;
+    };
+    let act = "";
+    if (u.role === "sales") act = `<button class="btn ${reviewBy(v.id, "sales") ? "" : "primary"} block" data-review="${v.id}">${reviewBy(v.id, "sales") ? "Изменить оценку ДПР" : "Оценить визит"}</button>`;
+    if (u.role === "region") act = reviewBy(v.id, "sales") ? `<button class="btn ${reviewBy(v.id, "region") ? "" : "primary"} block" data-review="${v.id}">${reviewBy(v.id, "region") ? "Изменить оценку ДР" : "Оценить визит"}</button>` : `<p class="hint">Сначала визит оценивает ДПР. Комментировать можно уже сейчас.</p>`;
+    return `<section class="panel"><div class="group-h" style="margin:0"><h2>Проверка руководителей</h2>${stagePill(v)}</div>${row("sales", "ДПР · директор по продажам")}${row("region", "ДР · директор региона")}${act}</section>`;
+  }
+  const MARKS = { ok: ["ok", "Да"], fail: ["bad", "Нет"], na: ["", "Н/П"] };
+  function checklistFull(v) {
+    return TPL.sections.map((sec) => {
+      const items = visibleItems(sec, v.params), st = secStat(v, sec);
+      const cm = items.reduce((a, it) => a + commentsOf(`vi:${v.id}:${it.id}`).length, 0);
+      return `<details class="cl" ${st.fail || cm ? "open" : ""}><summary><span class="code">${sec.n}</span><span class="cl-t">${esc(sec.title)}</span>${st.fail ? `<span class="pill bad">${st.fail} зам.</span>` : ""}${cm ? `<span class="pill">${cm} ${icon("chat", "sm")}</span>` : ""}${fig(st.score, { dec: 0, unit: "%", cls: st.score === null ? "na" : scoreCls(st.score, false) })}</summary>
+        ${items.map((it) => {
+          const a = v.answers[it.id] || {}, m = MARKS[a.v] || ["", "—"];
+          return `<div class="cl-i ${a.v === "fail" ? "is-fail" : ""}" id="cl-${it.id.replace(".", "-")}">
+            <div class="cl-q"><span class="code">${it.id}</span><p>${esc(it.text)}${it.count && a.count ? ` <span class="sub">· проверено ${a.count} арт.</span>` : ""}</p><span class="pill ${m[0]}">${m[1]}</span></div>
+            ${a.v === "fail" ? `<div class="cl-f"><p><b>ДП:</b> ${esc(a.comment || "без описания")}</p><span class="sub">${a.prio ? PRIO[a.prio].short : ""}${a.due ? ` · срок ${dShort(parseYmd(a.due))}` : ""}</span>
+              ${(a.photos || []).length ? `<div class="photos">${a.photos.map((p) => `<div class="ph"><button class="open" data-zoom="${p}" aria-label="Открыть фото"><img data-photo="${p}" alt="Фото к пункту ${it.id}"></button></div>`).join("")}</div>` : ""}</div>` : ""}
+            ${thread(`vi:${v.id}:${it.id}`, v.store, `Пункт ${it.id} · визит ${dShort(v.startedAt)}`)}
+          </div>`;
+        }).join("")}</details>`;
+    }).join("");
+  }
+  function targetLink(c) { // куда ведёт комментарий
+    const [kind, a, b] = c.target.split(":");
+    if (kind === "v" || kind === "vi") return { name: "act", p: { id: a, item: b } };
+    if (kind === "t") return { name: "task", p: { id: a } };
+    if (kind === "rb") { const rp = S().reports.find((r) => r.id === a); return rp ? (me().role === "dm" ? { name: "rblock", p: { n: +b } } : { name: "rstore", p: { id: rp.store, week: rp.week } }) : null; }
+    return null;
+  }
+  function cmtsScreen() {
+    const u = me(), ids = new Set(storesInScope(u).map((x) => x.id)), seen = seenAt();
+    const cs = S().comments.filter((c) => ids.has(c.store)).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 100);
+    try { localStorage.setItem(seenKey(), new Date().toISOString()); } catch (e) { /* ignore */ }
+    const body = `<button class="back" data-back>${icon("left", "sm")}Назад</button>
+      <div class="titlerow"><div><h1>Комментарии</h1><p>ДПР, ДР, ДП и ДМ по визитам, задачам и фотоотчётам</p></div></div>
+      ${cs.length ? `<div class="list">${cs.map((c) => `<button class="row" data-goto="${esc(c.target)}"><span class="main"><span class="t1"><span class="name">${esc(whoShort(c.by))}: ${esc(c.text)}</span>${c.by !== u.login && c.at > seen ? '<span class="pill bad">новый</span>' : ""}</span><span class="t2">${esc(c.label || "")} · ${dTime(c.at)}</span></span>${icon("right", "chev")}</button>`).join("")}</div>` : `<div class="empty"><b>Комментариев пока нет</b>Комментарии руководителей к визитам, задачам и фотоотчётам появятся здесь.</div>`}`;
+    return { title: "Комментарии", sub: ROLE_NAME[u.role], body };
+  }
+  const commentsBanner = () => { const n = unreadComments().length; return n ? `<button class="row panel cmbanner" data-goto-list style="flex-direction:row;padding:12px 14px"><span class="main"><span class="t1"><span class="name">Новые комментарии · ${n}</span></span><span class="t2">${esc(unreadComments().slice(-1)[0] ? whoShort(unreadComments().slice(-1)[0].by) + ": " + unreadComments().slice(-1)[0].text : "")}</span></span>${icon("right", "chev")}</button>` : `<button class="linkbtn" data-goto-list style="align-self:flex-start">${icon("chat", "sm")} Все комментарии</button>`; };
+
   /* ------------------------------------------------------------ router */
   let route = { name: "home", p: {} };
   const stack = [];
@@ -986,6 +1263,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       <header class="topbar"><div class="in">
         ${MARK}
         <div class="brand"><b>${esc(title || "Аудит магазина")}</b><span>${esc(sub || "")}</span></div>
+        ${SRV.on ? `<span class="syncpill" id="syncPill" role="status" hidden></span>` : ""}
         <button class="iconbtn" data-act="menu" aria-label="Профиль и выход">${icon("user")}</button>
       </div></header>
       <main class="page ${tabs ? "" : "no-tabs"} ${action ? "has-action" : ""}" id="main">${body}</main>
@@ -1004,7 +1282,8 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const rp = reportOf(u.store), need = !rp || rp.status === "draft" || rp.status === "returned";
       return [{ id: "home", label: "Задачи", icon: "tasks", badge: act || "" }, { id: "report", label: "Фотоотчёт", icon: "photo", badge: need && rp && rp.status === "returned" ? "!" : "" }, { id: "visits", label: "Визиты", icon: "doc" }];
     }
-    const t = [{ id: "home", label: "Регион", icon: "chart" }, { id: "svod", label: "Отчёт", icon: "report" }, { id: "stores", label: "Магазины", icon: "store" }, { id: "rlist", label: "Фотоотчёт", icon: "photo" }, { id: "escal", label: "Эскалации", icon: "alert" }];
+    const wait = waitingFor(u.role).length;
+    const t = [{ id: "home", label: "Регион", icon: "chart", badge: wait || "" }, { id: "svod", label: "Отчёт", icon: "report" }, { id: "stores", label: "Магазины", icon: "store" }, { id: "rlist", label: "Фотоотчёт", icon: "photo" }, { id: "escal", label: "Эскалации", icon: "alert" }];
     if (u.role === "sales") t.push({ id: "admin", label: "Настройки", icon: "gear" });
     return t;
   }
@@ -1023,7 +1302,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       { login: "region", label: "Директор региона", sub: "Регион СИБ, 78 магазинов" },
     ];
     return `<div class="login">
-      <div class="hero"><div class="in">${MARK}<h1>Аудит магазина</h1><p>Проверка магазина по чек-листу ДП, замечания с фото и их исправление. Регион СИБ.</p></div></div>
+      <div class="hero"><div class="in">${MARK}<h1>Аудит магазина</h1><p>${SRV.on ? `Пилот: ${D.stores.map((x) => `магазин ${x.id}, ${esc(x.place)}`).join("; ")}. Чек-лист ДП, фотоотчёт, проверка ДПР и ДР.` : "Проверка магазина по чек-листу ДП, замечания с фото и их исправление. Регион СИБ."}</p></div></div>
       <form id="loginForm" novalidate>
         <div class="field"><label for="lg">Логин</label><input class="input" id="lg" name="login" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" required></div>
         <div class="field"><label for="pw">Пароль</label><input class="input" id="pw" name="password" type="password" autocomplete="current-password" enterkeyhint="go" required></div>
@@ -1031,22 +1310,37 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         <button class="btn primary block" type="submit">Войти</button>
         <p class="hint">Логин и пароль выдаёт директор по продажам.</p>
       </form>
-      <div class="demo">
+      ${SRV.on ? "" : `<div class="demo">
         <h2>Тестовый вход, пароль ${PASSWORD}</h2>
         <div class="list">${demo.map((d) => `<button class="row" data-login="${d.login}"><span class="main"><span class="t1"><span class="name">${esc(d.label)}</span></span><span class="t2">${esc(d.sub)} · логин ${d.login}</span></span>${icon("right", "chev")}</button>`).join("")}</div>
         <p class="banner">${icon("alert", "sm")}<span>Прототип на тестовых данных: визиты и задачи сгенерированы, хранятся только в этом браузере.</span></p>
-      </div>
+      </div>`}
     </div>`;
   }
   function bindLogin(root) {
-    const doLogin = (login, pw) => {
-      const u = userBy((login || "").trim().toLowerCase());
+    const doLogin = async (login, pw) => {
       const err = $("#lgErr", root);
+      if (SRV.on) {
+        const btn = root.querySelector('#loginForm button[type="submit"]'); btn.disabled = true; btn.textContent = "Вхожу…";
+        try {
+          const r = await fetch(SRV.base + "login", { method: "POST", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ login: (login || "").trim().toLowerCase(), password: pw }) });
+          if (!r.ok) { err.hidden = false; err.textContent = await errText(r, "Не удалось войти"); return; }
+          const j = await r.json();
+          if (!userBy(j.user.login)) { err.hidden = false; err.textContent = "Этот логин не подходит к приложению. Обратитесь к администратору."; return; }
+          await Store.wipe(); S().session = { login: j.user.login, token: j.token, at: new Date().toISOString() }; Store.saveLocal();
+          btn.textContent = "Загружаю данные…";
+          await Sync.start(); home();
+        } catch (e) { err.hidden = false; err.textContent = "Нет связи с сервером. Проверьте интернет и попробуйте снова."; }
+        finally { btn.disabled = false; btn.textContent = "Войти"; }
+        return;
+      }
+      const u = userBy((login || "").trim().toLowerCase());
       if (!u || pw !== PASSWORD) { err.hidden = false; err.textContent = !u ? "Такого логина нет. Проверьте написание или спросите у директора по продажам." : "Неверный пароль."; return; }
       S().session = { login: u.login, at: new Date().toISOString() }; Store.save(); home();
     };
     $("#loginForm", root).addEventListener("submit", (e) => { e.preventDefault(); doLogin(e.target.login.value, e.target.password.value); });
     root.querySelectorAll("[data-login]").forEach((b) => b.addEventListener("click", () => doLogin(b.dataset.login, PASSWORD)));
+    if (SRV.on) setTimeout(() => { const f = $("#lg", root); f && f.focus({ preventScroll: true }); }, 50);
   }
 
   // ---- DP: stores
@@ -1070,6 +1364,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     rows.sort((a, b) => (!!b.d - !!a.d) || (visitedThisMonth(a.x.id) - visitedThisMonth(b.x.id)) || ((a.v ? a.v.startedAt : "") .localeCompare(b.v ? b.v.startedAt : "")));
     const body = `
       <div class="titlerow"><div><h1>Мои магазины</h1><p>${esc(u.div)} · ${list.length} ${plural(list.length, "магазин", "магазина", "магазинов")} · визит не реже раза в месяц</p></div></div>
+      ${commentsBanner()}
       <div class="strip" role="group" aria-label="Сводка">
         <button data-filter="due"><span>${fig(due.length, { cls: due.length ? "" : "ok" })}</span><span class="lbl">без визита в ${monthLoc()}</span></button>
         <button data-tab="review"><span>${fig(review.length)}</span><span class="lbl">задач ждут проверки</span></button>
@@ -1265,7 +1560,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         try {
           const x = STORES[v.store];
           const url = await processPhoto(file, [`kari ${x.id} · ${x.city}, ${x.place}`, `${dTime(new Date())} · пункт ${pf}`]);
-          const pid = uid("p"); await Photos.put(pid, url);
+          const pid = uid("p"); await Photos.put(pid, url, v.store);
           const a = v.answers[pf]; a.photos = [...(a.photos || []), pid]; save(); rerenderItem(pf);
         } catch (err) { toast(err.message); label.querySelector("span").textContent = "Снять"; }
       }
@@ -1349,7 +1644,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         target.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
         return;
       }
-      const sigDp = uid("s"), sigDm = uid("s"); await Photos.put(sigDp, sd); await Photos.put(sigDm, sm);
+      const sigDp = uid("s"), sigDm = uid("s"); await Photos.put(sigDp, sd, v.store); await Photos.put(sigDm, sm, v.store);
       const sc = computeScore(v);
       Object.assign(v, { status: "signed", endedAt: new Date().toISOString(), score: sc.score, crit: sc.crit, fails: sc.fail });
       v.sign = { dp: sigDp, dm: sigDm, dmName: name };
@@ -1366,27 +1661,30 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     });
   }
 
-  // ---- act (read-only)
+  // ---- act: посещение целиком — итог, оценки ДПР и ДР, весь чек-лист с фото, задачи, фотоотчёт недели, подписи
+  screens.cmts = cmtsScreen;
   screens.act = ({ id }) => {
-    const v = visitById(id); const x = STORES[v.store];
-    const fails = Object.entries(v.answers).filter(([, a]) => a.v === "fail");
+    const v = visitById(id); const x = STORES[v.store]; const u = me();
     const ts = S().tasks.filter((t) => t.visit === v.id);
+    const wk = weekStart(v.startedAt), rp = reportOf(v.store, wk);
     const body = `
       <button class="back" data-back>${icon("left", "sm")}Назад</button>
-      <div class="titlerow"><div><h1>Акт визита</h1><p><span class="code">${x.id}</span> ${esc(x.city)}, ${esc(x.place)}</p></div>${v.seed ? '<span class="pill demo">тестовые данные</span>' : ""}</div>
+      <div class="titlerow"><div><h1>Посещение</h1><p><span class="code">${x.id}</span> ${esc(x.city)}, ${esc(x.place)}</p></div>${v.seed ? '<span class="pill demo">тестовые данные</span>' : stagePill(v)}</div>
       <div class="verdict">
-        <div>${scoreFig(v)}<div class="sub" style="margin-top:6px">балл визита</div></div>
+        <div>${scoreFig(v)}<div class="sub" style="margin-top:6px">балл чек-листа</div></div>
         <div class="counts"><div>${fig(v.fails, { cls: v.fails ? "bad" : "" })}<small>замечаний</small></div><div>${fig(ts.filter((t) => t.status === "accepted").length, { cls: "ok" })}<small>исправлено</small></div><div>${fig(Math.round((new Date(v.endedAt) - new Date(v.startedAt)) / 60000))}<small>минут</small></div></div>
         <p>${dTime(v.startedAt)} — ${dTime(v.endedAt).split(", ")[1]} · ДП ${esc(userBy(v.dp).name)}${v.sign.dmName ? ` · ДМ ${esc(v.sign.dmName)}` : ""}${v.summary.recheck ? " · повторная проверка" : ""}${v.crit ? " · есть нарушение критичного пункта" : ""}</p>
       </div>
-      ${v.summary.notes ? `<div class="panel"><h2>Главные замечания</h2><p style="white-space:pre-wrap">${esc(v.summary.notes)}</p></div>` : ""}
-      <section><div class="group-h"><h2>Задачи по замечаниям</h2><span>${ts.length}</span></div>
-        ${ts.length ? `<div class="list">${ts.map(taskRow).join("")}</div>` : `<div class="empty"><b>Замечаний нет</b>Все проверенные пункты выполнены.</div>`}</section>
-      <section><div class="group-h"><h2>По разделам</h2></div>
-        <div class="list">${TPL.sections.map((s) => { const st = secStat(v, s); return `<div class="secrow"><span class="n">${s.n}</span><span>${esc(s.title)}${st.fail ? ` <span class="bad">· ${st.fail} ${plural(st.fail, "замечание", "замечания", "замечаний")}</span>` : ""}</span>${fig(st.score, { dec: 0, unit: "%", cls: st.score === null ? "na" : scoreCls(st.score, false) })}</div>`; }).join("")}</div></section>
-      ${v.sign.dp ? `<div class="panel"><h2>Подписи</h2><div class="ba"><figure><figcaption>ДП</figcaption><img class="sigimg" data-photo="${v.sign.dp}" alt="Подпись ДП"></figure><figure><figcaption>ДМ ${esc(v.sign.dmName)}</figcaption><img class="sigimg" data-photo="${v.sign.dm}" alt="Подпись ДМ"></figure></div></div>` : ""}
-      <p class="hint">PDF-акт и рассылка ДП, ДМ и руководству появятся вместе с сервером.</p>`;
-    return { title: "Акт визита", sub: `${x.id} · ${dShort(v.startedAt)}`, body };
+      ${reviewPanel(v)}
+      <section class="panel"><h2>Итог ДП</h2>${v.summary.notes ? `<p style="white-space:pre-wrap">${esc(v.summary.notes)}</p>` : `<p class="sub">Главные замечания ДП не написал.</p>`}
+        ${thread(`v:${v.id}`, v.store, `Визит ${dShort(v.startedAt)} · ${x.id}`)}</section>
+      <section><div class="group-h"><h2>Задачи ДМ по замечаниям</h2><span>${ts.length}</span></div>
+        ${ts.length ? `<div class="list">${ts.map(taskRow).join("")}</div><p class="hint" style="margin-top:6px">В задаче — фото «было / стало», ответ ДМ, решение ДП и комментарии.</p>` : `<div class="empty"><b>Замечаний нет</b>Все проверенные пункты выполнены.</div>`}</section>
+      <button class="row panel" data-rstore="${x.id}" data-rweek="${wk}" style="flex-direction:row;padding:12px 14px"><span class="main"><span class="t1"><span class="name">Фотоотчёт недели ${weekLabel(wk)}</span></span><span class="t2">${rp ? `блоков ${readyCount(rp)} из ${RB.length}${rp.submittedAt ? " · сдан " + dTime(rp.submittedAt) : ""}` : "не начат"}</span></span><span class="end">${rpill(rp)}</span></button>
+      <section><div class="group-h"><h2>Чек-лист целиком</h2><span>${computeScore(v).answered} ${plural(computeScore(v).answered, "пункт", "пункта", "пунктов")}</span></div>
+        <div class="list cl-list">${checklistFull(v)}</div></section>
+      ${v.sign.dp ? `<div class="panel"><h2>Подписи</h2><div class="ba"><figure><figcaption>ДП</figcaption><img class="sigimg" data-photo="${v.sign.dp}" alt="Подпись ДП"></figure><figure><figcaption>ДМ ${esc(v.sign.dmName)}</figcaption><img class="sigimg" data-photo="${v.sign.dm}" alt="Подпись ДМ"></figure></div></div>` : ""}`;
+    return { title: "Посещение", sub: `${x.id} · ${dShort(v.startedAt)} · ${ROLE_NAME[u.role]}`, body };
   };
 
   // ---- task detail (ДМ fixes / ДП accepts)
@@ -1423,6 +1721,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       </div>` : ""}
       ${t.fix && t.fix.comment ? `<div class="panel"><h2>Комментарий ДМ</h2><p>${esc(t.fix.comment)}</p></div>` : ""}
       ${canReview ? `<div class="field"><label for="retc">Если возвращаете — что переделать</label><textarea class="input" id="retc" placeholder="Например: на фото не видно всего блока"></textarea></div><p class="err" id="retErr" hidden></p>` : ""}
+      <section class="panel"><h2>Комментарии</h2>${thread(`t:${t.id}`, t.store, `Задача ${t.item} · ${x.id}`)}</section>
       <section><div class="group-h"><h2>История</h2></div>
         <ol class="timeline">${t.history.map((h) => `<li><div>${actLabel[h.act] || h.act}${h.comment ? `: «${esc(h.comment)}»` : ""}<br><span>${dTime(h.at)} · ${esc((userBy(h.by) || {}).short || h.by)}</span></div></li>`).join("")}</ol></section>`;
     let action = "";
@@ -1455,7 +1754,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       try {
         const x = STORES[t.store];
         const url = await processPhoto(e.target.files[0], [`kari ${x.id} · ${x.city}, ${x.place}`, `${dTime(new Date())} · исправление ${t.item}`]);
-        const pid = uid("p"); await Photos.put(pid, url); draft.photos.push(pid); render(false);
+        const pid = uid("p"); await Photos.put(pid, url, t.store); draft.photos.push(pid); render(false);
       } catch (err) { toast(err.message); lab.querySelector("span").textContent = "Снять «стало»"; }
     });
   }
@@ -1491,6 +1790,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     const v = lastVisit(u.store);
     const body = `
       <div class="titlerow"><div><h1>Задачи магазина</h1><p><span class="code">${x.id}</span> ${esc(x.city)}, ${esc(x.place)}</p></div></div>
+      ${commentsBanner()}
       <div class="strip" role="group" aria-label="Сводка">
         <div>${fig(todo.length)}<span class="lbl">нужно исправить</span></div>
         <div>${fig(od.length, { cls: od.length ? "bad" : "ok" })}<span class="lbl">просрочено</span></div>
@@ -1552,6 +1852,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         ${!bl.photos.length && bl.seed ? `<p class="sub">Тестовые данные: фото нет.</p>` : ""}
         <p class="sub">${bl.photos.length >= min ? "Достаточно. Можно добавить ещё." : `Нужно ещё ${min - bl.photos.length} ${plural(min - bl.photos.length, "фото", "фото", "фото")}.`} На каждом снимке автоматически ставится код магазина, дата и время.</p>
       </div>
+      ${commentsOf(`rb:${rp.id}:${n}`).length ? `<section class="panel"><h2>Комментарии руководителей</h2>${thread(`rb:${rp.id}:${n}`, x.id, `Фотоотчёт ${x.id} · блок ${n}. ${b.title}`)}</section>` : ""}
       ${editable && bl.st !== "ok" ? `<div class="field"><label for="rbc">Комментарий для ДП</label><textarea class="input" id="rbc" placeholder="Необязательно">${esc(bl.comment)}</textarea></div>` : bl.comment ? `<div class="panel"><h2>Комментарий ДМ</h2><p>${esc(bl.comment)}</p></div>` : ""}`;
     const action = `<button class="btn primary block" data-back>${icon("check", "sm")}Готово</button>`;
     return { title: `Блок ${b.n}`, sub: `${x.id} · ${esc(b.title)}`, body, action };
@@ -1582,14 +1883,14 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     return { title: "Фотоотчёты", sub: `${ROLE_NAME[u.role]}${u.div ? " · " + u.div : ""}`, body };
   };
 
-  screens.rstore = ({ id }) => { // ДП: проверка отчёта магазина по блокам
-    const u = me(), x = STORES[id], rp = reportOf(id);
+  screens.rstore = ({ id, week }) => { // ДП: проверка отчёта по блокам; ДПР и ДР смотрят и комментируют
+    const u = me(), x = STORES[id], wk = week || weekStart(), rp = reportOf(id, wk);
     const isMine = u.role === "dp" && x.div === u.div, canRev = isMine && rp && rp.status === "review";
     const body = !rp ? `<button class="back" data-back>${icon("left", "sm")}Фотоотчёты</button>
-        <div class="titlerow"><div><h1><span class="code" style="font-size:22px">${x.id}</span> ${esc(x.place)}</h1><p>${esc(x.city)} · неделя ${weekLabel()}</p></div>${rpill(rp)}</div>
-        <div class="empty"><b>Фотоотчёт не начат</b>${dueLine()}.</div>` : `
+        <div class="titlerow"><div><h1><span class="code" style="font-size:22px">${x.id}</span> ${esc(x.place)}</h1><p>${esc(x.city)} · неделя ${weekLabel(wk)}</p></div>${rpill(rp)}</div>
+        <div class="empty"><b>Фотоотчёт не начат</b>${wk === weekStart() ? dueLine() + "." : "За эту неделю отчёта нет."}</div>` : `
       <button class="back" data-back>${icon("left", "sm")}Фотоотчёты</button>
-      <div class="titlerow"><div><h1><span class="code" style="font-size:22px">${x.id}</span> ${esc(x.place)}</h1><p>${esc(x.city)} · неделя ${weekLabel()}${rp.submittedAt ? ` · сдан ${dTime(rp.submittedAt)}` : ""}</p></div>${rpill(rp)}</div>
+      <div class="titlerow"><div><h1><span class="code" style="font-size:22px">${x.id}</span> ${esc(x.place)}</h1><p>${esc(x.city)} · неделя ${weekLabel(wk)}${rp.submittedAt ? ` · сдан ${dTime(rp.submittedAt)}` : ""}</p></div>${rpill(rp)}</div>
       ${rp.status === "draft" || rp.status === "returned" ? `<p class="banner">${icon("clock", "sm")}<span>${rp.status === "returned" ? "Возвращён ДМ на доработку." : "ДМ ещё заполняет отчёт."} Показаны уже снятые блоки.</span></p>` : ""}
       ${RB.map((b) => {
         const bl = rp.blocks[b.n] || { photos: [] }, decided = bl.st === "ok" || bl.st === "ret";
@@ -1597,12 +1898,13 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
           ${bl.photos.length ? `<div class="photos">${bl.photos.map((p) => `<div class="ph"><button class="open" data-zoom="${p}" aria-label="Открыть фото"><img data-photo="${p}" alt="Фото блока ${esc(b.title)}"></button></div>`).join("")}</div>` : `<p class="sub">${bl.seed ? "Тестовые данные: фото нет." : "Фото ещё нет."}</p>`}
           ${bl.comment ? `<p class="sub">ДМ: «${esc(bl.comment)}»</p>` : ""}
           ${bl.st === "ret" && bl.ret ? `<p class="sub" style="color:var(--mid);font-weight:600">Возврат: ${esc(bl.ret)}</p>` : ""}
+          ${thread(`rb:${rp.id}:${b.n}`, x.id, `Фотоотчёт ${x.id} · блок ${b.n}. ${b.title}`)}
           ${canRev && !bl.locked ? `<div class="rrev"><button class="btn good" data-rok="${b.n}" aria-pressed="${bl.st === "ok"}">${icon("check", "sm")}Принять</button><button class="btn danger" data-rno="${b.n}" aria-pressed="${bl.st === "ret"}">Вернуть</button></div>` : ""}
         </section>`;
       }).join("")}`;
     const undecided = rp ? RB.filter((b) => !["ok", "ret"].includes(rp.blocks[b.n] && rp.blocks[b.n].st)).length : 0;
     const action = canRev ? `<span class="meta">${undecided ? `Осталось ${undecided}` : "Все блоки проверены"}</span><button class="btn primary" data-act="rfinish" ${undecided ? "disabled" : ""}>Завершить проверку</button>` : "";
-    return { title: "Фотоотчёт", sub: `${x.id} · неделя ${weekLabel()}`, body, action };
+    return { title: "Фотоотчёт", sub: `${x.id} · неделя ${weekLabel(wk)}`, body, action };
   };
 
   function bindReport(root) {
@@ -1611,10 +1913,10 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const rm = e.target.closest("[data-rmrb]");
       if (rm && route.name === "rblock") { const bl = ensureReport(me().store).blocks[route.p.n]; bl.photos = bl.photos.filter((p) => p !== rm.dataset.rmrb); Photos.del(rm.dataset.rmrb); Store.save(); render(false); return; }
       const ok = e.target.closest("[data-rok]");
-      if (ok) { const bl = reportOf(route.p.id).blocks[ok.dataset.rok]; bl.st = "ok"; bl.ret = ""; Store.save(); render(false); return; }
+      if (ok) { const bl = reportOf(route.p.id, route.p.week || weekStart()).blocks[ok.dataset.rok]; bl.st = "ok"; bl.ret = ""; Store.save(); render(false); return; }
       const no = e.target.closest("[data-rno]");
       if (no) {
-        const n = no.dataset.rno, bl = reportOf(route.p.id).blocks[n];
+        const n = no.dataset.rno, bl = reportOf(route.p.id, route.p.week || weekStart()).blocks[n];
         sheet(`<h2>Вернуть блок ${n}</h2><p class="sub">${esc(RB_BY[n].title)}. ДМ увидит ваш комментарий и переснимет блок.</p>
           <div class="field"><label for="rret">Что переделать</label><textarea class="input" id="rret" placeholder="Например: на фото не видно торца целиком"></textarea></div><p class="err" id="rretErr" hidden></p>
           <button class="btn danger block" data-go>Вернуть блок</button>`, (sh, close) => {
@@ -1633,7 +1935,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         rp.status = "review"; rp.submittedAt = now; Store.save(); toast("Фотоотчёт отправлен ДП"); render(true);
       }
       if (a.dataset.act === "rfinish") {
-        const rp = reportOf(route.p.id), bad = RB.filter((b) => rp.blocks[b.n].st === "ret").length;
+        const rp = reportOf(route.p.id, route.p.week || weekStart()), bad = RB.filter((b) => rp.blocks[b.n].st === "ret").length;
         for (const b of RB) { const bl = rp.blocks[b.n]; if (bl.st === "ok") bl.locked = true; }
         rp.status = bad ? "returned" : "accepted"; Store.save();
         toast(bad ? `Возвращено блоков: ${bad}. ДМ получит уведомление` : "Фотоотчёт принят");
@@ -1647,7 +1949,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       try {
         const u = me(), x = STORES[u.store], n = route.p.n;
         const url = await processPhoto(e.target.files[0], [`kari ${x.id} · ${x.city}, ${x.place}`, `${dTime(new Date())} · фотоотчёт · блок ${n}. ${RB_BY[n].title}`]);
-        const pid = uid("p"); await Photos.put(pid, url);
+        const pid = uid("p"); await Photos.put(pid, url, u.store);
         ensureReport(u.store).blocks[n].photos.push(pid); Store.save(); render(false);
       } catch (err) { toast(err.message); lbl.textContent = "Снять"; }
     });
@@ -1671,7 +1973,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       avgMin: mins.length ? mins.reduce((a, b) => a + b, 0) / mins.length : null, fails: recent.length ? recent.reduce((a, v) => a + v.fails, 0) / recent.length : null,
       red: recent.filter((v) => v.crit || v.score < 75).length, behind: cover < frac - 0.15 && left.length > 0, cover };
   }
-  const visitRow = (v, who) => `<button class="row" data-visit="${v.id}"><span class="main"><span class="t1"><span class="code">${v.store}</span><span class="name">${esc(STORES[v.store].place)}</span>${v.seed ? '<span class="pill demo">тест</span>' : ""}</span><span class="t2">${dTime(v.startedAt)}${who ? " · " + esc(userBy(v.dp).short) : ""} · ${v.fails} ${plural(v.fails, "замечание", "замечания", "замечаний")}${v.crit ? " · критичное" : ""}${v.endedAt ? ` · ${Math.round((new Date(v.endedAt) - new Date(v.startedAt)) / 6e4)} мин` : ""}</span></span><span class="end">${scoreFig(v)}</span></button>`;
+  const visitRow = (v, who) => `<button class="row" data-visit="${v.id}"><span class="main"><span class="t1"><span class="code">${v.store}</span><span class="name">${esc(STORES[v.store].place)}</span>${v.seed ? '<span class="pill demo">тест</span>' : ""}</span><span class="t2">${dTime(v.startedAt)}${who ? " · " + esc(userBy(v.dp).short) : ""} · ${v.fails} ${plural(v.fails, "замечание", "замечания", "замечаний")}${v.crit ? " · критичное" : ""}${v.endedAt ? ` · ${Math.round((new Date(v.endedAt) - new Date(v.startedAt)) / 6e4)} мин` : ""}</span></span><span class="end">${scoreFig(v)}${v.seed ? "" : stagePill(v)}</span></button>`;
   function dpCard(st) {
     const max = Math.max(1, ...st.weeks);
     return `<div class="panel dpcard">
@@ -1734,7 +2036,12 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     const worst = lasts.filter((r) => r.v).sort((a, b) => (b.v.crit - a.v.crit) || a.v.score - b.v.score).slice(0, 8);
     const body = `
       <div class="titlerow"><div><h1>Регион СИБ</h1><p>${monthName()[0].toUpperCase() + monthName().slice(1)} · последний визит по каждому магазину</p></div></div>
-      <div class="seg" role="group" aria-label="Подразделение">${[["all", "Весь регион"], ...divs.map((d) => [d, d])].map(([k, l]) => `<button data-div="${esc(k)}" aria-pressed="${regionDiv === k}">${esc(l)}</button>`).join("")}</div>
+      ${(() => { const mine = waitingFor(u.role), other = u.role === "region" ? waitingFor("sales") : [];
+        return `<section><div class="group-h"><h2>Ждут вашей оценки</h2><span>${u.role === "sales" ? "сначала ДПР, потом ДР" : "после оценки ДПР"}</span></div>
+          ${mine.length ? `<div class="list">${mine.map((v) => visitRow(v, true)).join("")}</div>` : `<div class="empty"><b>Новых посещений на оценку нет</b>${u.role === "sales" ? "Визит появится здесь, как только ДП подпишет акт." : "Визит появится здесь после оценки ДПР."}</div>`}
+          ${other.length ? `<p class="hint" style="margin-top:8px">Ещё у ДПР на оценке: ${other.length}. Открыть и прокомментировать их можно в «Последних проверках».</p>` : ""}</section>`; })()}
+      ${commentsBanner()}
+      ${D.dps.length > 1 ? `<div class="seg" role="group" aria-label="Подразделение">${[["all", "Весь регион"], ...divs.map((d) => [d, d])].map(([k, l]) => `<button data-div="${esc(k)}" aria-pressed="${regionDiv === k}">${esc(l)}</button>`).join("")}</div>` : ""}
       <div class="strip" role="group" aria-label="Сводка">
         <div>${fig(avg, { dec: 1, unit: "%", cls: scoreCls(avg, false) })}<span class="lbl">средний балл, ${scores.length} ${plural(scores.length, "магазин", "магазина", "магазинов")}</span></div>
         <div><span>${fig(monthV.length)}<span class="sub" style="font-family:var(--font-fig);font-weight:600;font-size:20px"> / ${stores.length}</span></span><span class="lbl">с визитом в этом месяце</span></div>
@@ -1745,7 +2052,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         <div class="dpgrid">${D.dps.filter((d) => regionDiv === "all" || d.div === regionDiv).map((d) => dpCard(dpStats(d))).join("")}</div></section>
       <section><div class="group-h"><h2>Последние проверки</h2><span>чек-лист ДП</span></div>
         <div class="list">${S().visits.filter((v) => v.status === "signed" && inScope(STORES[v.store])).sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, 8).map((v) => visitRow(v, true)).join("")}</div></section>
-      <section><div class="group-h"><h2>Подразделения</h2><span>5 ДП</span></div>
+      <section><div class="group-h"><h2>Подразделения</h2><span>${D.dps.length} ДП</span></div>
         <div class="tablewrap div-table"><table>
           <thead><tr><th>Подразделение</th><th class="num">Визит в месяце</th><th class="num">Средний балл</th><th class="num">В красной зоне</th><th class="num">Задачи у ДМ</th><th class="num">Просрочено</th></tr></thead>
           <tbody>${perDiv.map((r) => `<tr class="click" data-div="${esc(r.div)}" tabindex="0"><td><b>${esc(r.div)}</b><div class="sub" style="font-size:12.5px">${esc(r.dp.short)} · ${r.n} маг.</div></td><td class="num">${r.month} / ${r.n}</td><td class="num">${fig(r.avg, { dec: 1, cls: scoreCls(r.avg, false) })}</td><td class="num" style="${r.red ? "color:var(--bad);font-weight:600" : ""}">${r.red}</td><td class="num">${r.open}</td><td class="num" style="${r.od ? "color:var(--bad);font-weight:600" : ""}">${r.od}</td></tr>`).join("")}</tbody>
@@ -1991,12 +2298,12 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         <div class="list" style="margin-top:12px">${TPL.sections.map((s) => `<div class="secrow"><span class="n">${s.n}</span><span>${esc(s.title)} <span class="sub">· ${s.items.length} п. · ${s.min} мин</span></span><span class="sub">${esc(s.basis.split(",")[0])}</span></div>`).join("")}</div></section>
       <section><div class="group-h"><h2>Пользователи</h2><span>${USERS.length}</span></div>
         <div class="list">${[...D.dps, USERS.find((x) => x.login === "sales"), USERS.find((x) => x.login === "region")].map((x) => `<div class="row" style="cursor:default"><span class="main"><span class="t1"><span class="name">${esc(x.name)}</span></span><span class="t2">${x.role === "dp" ? "ДП · " + esc(x.div) : ROLE_NAME[x.role]} · логин ${x.login}</span></span></div>`).join("")}
-          <div class="row" style="cursor:default"><span class="main"><span class="t1"><span class="name">78 директоров магазинов</span></span><span class="t2">логины dm + код магазина, например dm11813</span></span></div></div>
-        <p class="hint">Выдача логинов и паролей — на сервере. В прототипе у всех пароль ${PASSWORD}.</p></section>
+          <div class="row" style="cursor:default"><span class="main"><span class="t1"><span class="name">${D.stores.length} ${plural(D.stores.length, "директор магазина", "директора магазинов", "директоров магазинов")}</span></span><span class="t2">логины dm + код магазина, например dm${D.stores[0].id}</span></span></div></div>
+        <p class="hint">${SRV.on ? "Логины и пароли выдаются на сервере командой manage.py (см. README-DEPLOY.md)." : `Выдача логинов и паролей — на сервере. В прототипе у всех пароль ${PASSWORD}.`}</p></section>
       <section><div class="group-h"><h2>Хранение и уведомления</h2></div>
         <div class="panel"><dl class="kv"><dt>Фото</dt><dd>4 месяца</dd><dt>Сроки по приоритету</dt><dd>П1 ${DUE_DAYS[1]} дн · П2 ${DUE_DAYS[2]} дн · П3 ${DUE_DAYS[3]} дн</dd><dt>Уведомления</dt><dd>push, почта, Kari Connect позже</dd></dl></div></section>
-      <section><div class="group-h"><h2>Тестовые данные</h2></div>
-        <div class="panel"><p class="sub">Сбросить все визиты, задачи и фото в этом браузере и создать тестовые данные заново.</p><button class="btn danger" data-act="reset">Сбросить тестовые данные</button></div></section>`;
+      ${SRV.on ? "" : `<section><div class="group-h"><h2>Тестовые данные</h2></div>
+        <div class="panel"><p class="sub">Сбросить все визиты, задачи и фото в этом браузере и создать тестовые данные заново.</p><button class="btn danger" data-act="reset">Сбросить тестовые данные</button></div></section>`}`;
     return { title: "Настройки", sub: ROLE_NAME.sales, body };
   };
 
@@ -2014,10 +2321,12 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     app.replaceChildren(root);
     if (animate) { const m = $("#main", root); m && m.classList.add("enter"); window.scrollTo({ top: 0 }); }
     bindCommon(root);
+    if (SRV.on) Sync.paint();
     if (route.name === "visit") bindVisit(root, visitById(route.p.id));
     if (route.name === "summary") bindSummary(root, visitById(route.p.id));
     if (route.name === "task") bindTask(root, S().tasks.find((t) => t.id === route.p.id));
     if (route.name === "report" || route.name === "rblock" || route.name === "rstore") bindReport(root);
+    if (route.name === "act" && route.p.item && animate) setTimeout(() => { const el = document.getElementById("cl-" + route.p.item.replace(".", "-")); if (el) { el.closest("details").open = true; el.scrollIntoView({ block: "center" }); el.classList.add("flash"); } }, 60);
     hydratePhotos(root);
   }
   function bindCommon(root) {
@@ -2030,7 +2339,11 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const tk = t.closest("[data-task]"); if (tk) return go("task", { id: tk.dataset.task });
       const sd = t.closest("[data-sdiv]"); if (sd) { sDiv = sd.dataset.sdiv; return render(false); }
       const dv2 = t.closest("[data-dpvisits]"); if (dv2) return go("dpvisits", { div: dv2.dataset.dpvisits });
-      const rs = t.closest("[data-rstore]"); if (rs) return go("rstore", { id: rs.dataset.rstore });
+      const cm = t.closest("[data-cmt]"); if (cm) return openComment(cm.dataset.cmt, cm.dataset.cmtStore, cm.dataset.cmtLabel);
+      const rvb = t.closest("[data-review]"); if (rvb) return openReview(visitById(rvb.dataset.review));
+      const gt = t.closest("[data-goto]"); if (gt) { const l = targetLink({ target: gt.dataset.goto }); if (l) go(l.name, l.p); else toast("Запись не найдена"); return; }
+      if (t.closest("[data-goto-list]")) return go("cmts");
+      const rs = t.closest("[data-rstore]"); if (rs) return go("rstore", { id: rs.dataset.rstore, week: rs.dataset.rweek });
       const rb = t.closest("[data-rblock]"); if (rb) return go("rblock", { n: Number(rb.dataset.rblock) });
       const rf = t.closest("[data-rfilter]"); if (rf) { rFilter = rFilter === rf.dataset.rfilter && rf.closest(".strip") ? "all" : rf.dataset.rfilter; return render(false); }
       const rd = t.closest("[data-rdiv]"); if (rd) { rDiv = rd.dataset.rdiv; return render(false); }
@@ -2062,11 +2375,15 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     sheet(`<div class="row" style="cursor:default;padding-inline:0"><span class="main"><span class="t1"><span class="name">${esc(u.name)}</span></span><span class="t2">${ROLE_NAME[u.role]}${u.div ? " · " + esc(u.div) : ""} · логин ${u.login}</span></span></div>
       <div class="field"><span class="lbl">Тема</span><div class="chips">${[["", "Как в системе"], ["light", "Светлая"], ["dark", "Тёмная"]].map(([k, l]) => `<button class="chip" data-theme-set="${k}" aria-pressed="${(document.documentElement.dataset.theme || "") === k}">${l}</button>`).join("")}</div></div>
       <button class="btn block" data-out>${icon("logout", "sm")}Выйти</button>
-      <p class="hint">Версия ${APP_VERSION} · прототип, данные в этом браузере</p>`, (sh, close) => {
+      <p class="hint">Версия ${APP_VERSION} · ${SRV.on ? "пилот, данные на сервере" : "прототип, данные в этом браузере"}</p>`, (sh, close) => {
       sh.addEventListener("click", (e) => {
         const th = e.target.closest("[data-theme-set]");
         if (th) { const v = th.dataset.themeSet; if (v) document.documentElement.dataset.theme = v; else delete document.documentElement.dataset.theme; try { localStorage.setItem("audit.theme", v); } catch (er) { /* ignore */ } sh.querySelectorAll("[data-theme-set]").forEach((b) => b.setAttribute("aria-pressed", String(b === th))); syncThemeColor(); }
-        if (e.target.closest("[data-out]")) { S().session = null; Store.save(); close(); stack.length = 0; route = { name: "home", p: {} }; render(true); }
+        if (e.target.closest("[data-out]")) {
+          close(); stack.length = 0; route = { name: "home", p: {} };
+          if (SRV.on) { Sync.stop(); srvFetch("logout", { method: "POST" }).catch(() => {}).finally(async () => { await Store.wipe(); render(true); }); return; }
+          S().session = null; Store.save(); render(true);
+        }
       });
     });
   }
@@ -2084,9 +2401,29 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
 
   /* ------------------------------------------------------------ boot */
   try { const th = localStorage.getItem("audit.theme"); if (th) document.documentElement.dataset.theme = th; } catch (e) { /* ignore */ }
-  Store.init();
-  render(false);
-  syncThemeColor();
+  async function probeServer() {
+    if (location.protocol === "file:" || /github\.io$/.test(location.hostname)) return null;
+    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 4000);
+    try { const r = await fetch(SRV.base + "health", { cache: "no-store", signal: ctl.signal }); const j = r.ok ? await r.json() : null; return j && j.app === "audit-sibir" ? j : null; }
+    catch (e) { return null; } finally { clearTimeout(tm); }
+  }
+  function usePilotStores(ids) { // в пилоте видны только магазины, открытые на сервере
+    if (!ids || !ids.length || ids.length >= D.stores.length) return;
+    const keep = D.stores.filter((x) => ids.includes(x.id)), divs = new Set(keep.map((x) => x.div));
+    D.stores.splice(0, D.stores.length, ...keep);
+    D.dps.splice(0, D.dps.length, ...D.dps.filter((d) => divs.has(d.div)));
+  }
+  (async () => {
+    let remembered = null; try { remembered = JSON.parse(localStorage.getItem("audit.srv.health") || "null"); } catch (e) { /* ignore */ }
+    const h = await probeServer();
+    if (h) { try { localStorage.setItem("audit.srv.health", JSON.stringify(h)); } catch (e) { /* ignore */ } }
+    const info = h || (remembered && location.protocol !== "file:" ? remembered : null); // без связи в магазине — работаем с сохранённым
+    if (info) { SRV.on = true; SRV.stores = info.stores; usePilotStores(info.stores); if (!h) SRV.status = "offline"; }
+    Store.init();
+    render(false);
+    syncThemeColor();
+    if (SRV.on && S().session && S().session.token) Sync.start();
+  })();
   window.__audit = { Store, computeScore, TPL, ITEM, go, render }; // для проверки в консоли
 })();
 </script>
