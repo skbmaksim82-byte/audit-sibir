@@ -366,6 +366,193 @@ tbody tr.click { cursor: pointer; }
 .wk { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 3px; }
 .wk i { display: block; width: 100%; background: var(--ink); border-radius: 3px 3px 0 0; opacity: 0.85; }
 .wk b { font-family: var(--font-fig); font-size: 13px; font-weight: 600; color: var(--ink-2); line-height: 1; }
+
+/* ---------- сводный отчёт директоров: белые карточки на сером поле, шкала зелёный → жёлтый → оранжевый ---------- */
+:root {
+  --rp-ground: #eceef1; --rp-card: #ffffff; --rp-track: #eef0f2; --rp-gray: #c3c7cb;
+  --rp-g: #8cc63f; --rp-l: #cfd63a; --rp-y: #f6c33b; --rp-o: #f39a2e; --rp-r: #e8582a;
+  --rp-up: #2e8f47; --rp-down: #d8432b; --rp-day-ink: #3a2408;
+  --rp-shadow: 0 1px 2px rgb(22 24 26 / 0.04), 0 8px 24px rgb(22 24 26 / 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --rp-ground: #0f1011; --rp-card: #18191b; --rp-track: #26292c; --rp-gray: #4a4f54; --rp-up: #5ccf7e; --rp-down: #ff7a62; --rp-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.25); }
+}
+:root[data-theme="dark"] { --rp-ground: #0f1011; --rp-card: #18191b; --rp-track: #26292c; --rp-gray: #4a4f54; --rp-up: #5ccf7e; --rp-down: #ff7a62; --rp-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.25); }
+
+body.xwide { background: var(--rp-ground); }
+.xwide .topbar .in, .xwide .page, .xwide .tabbar .in { max-width: 1320px; }
+.tabbar .in:has(.tab:nth-child(6)) .tab { font-size: 11px; }
+
+.rp-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; }
+.rp-head p { color: var(--ink-2); font-size: 13.5px; margin-top: 4px; }
+.rp-picks { display: flex; gap: 8px; flex-wrap: wrap; }
+.rp-pick { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 36px 0 14px; border-radius: 20px; background: var(--rp-card); box-shadow: var(--rp-shadow); font-size: 13px; color: var(--ink-3); cursor: pointer; transition: box-shadow 150ms ease; }
+.rp-pick b { color: var(--ink); font-weight: 650; font-size: 14px; white-space: nowrap; }
+.rp-pick .icon { position: absolute; right: 12px; width: 16px; height: 16px; color: var(--ink-2); pointer-events: none; }
+.rp-pick select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+.rp-pick:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.rp-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+.rp-card { background: var(--rp-card); border-radius: 20px; box-shadow: var(--rp-shadow); padding: 16px 18px 18px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.rp-card > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.rp-card h3 { font-size: 14.5px; font-weight: 650; line-height: 1.25; }
+.rp-sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; line-height: 1.3; }
+.rp-tag { height: 22px; padding: 0 8px; border-radius: 11px; background: var(--rp-track); color: var(--ink-2); font-size: 11px; font-weight: 650; display: inline-flex; align-items: center; white-space: nowrap; flex: 0 0 auto; }
+.rp-tag b { color: var(--ink); margin: 0 3px; }
+.rp-num { font-weight: 700; font-size: 34px; line-height: 1; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rp-num small { font-size: 0.5em; font-weight: 600; margin-left: 3px; letter-spacing: 0; color: var(--ink-2); }
+.rp-note { font-size: 12.5px; color: var(--ink-3); }
+.rp-note.up { color: var(--rp-up); font-weight: 600; } .rp-note.down { color: var(--rp-down); font-weight: 600; }
+.rp-cap { font-size: 11.5px; color: var(--ink-3); }
+.rp-meter { position: relative; height: 8px; border-radius: 4px; background: var(--rp-track); margin-top: auto; }
+.rp-meter i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: linear-gradient(90deg, var(--rp-g), var(--rp-y) 55%, var(--rp-o)); transform-origin: left; }
+.rp-meter b { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
+.rp-spark { width: 100%; height: 44px; display: block; margin-top: auto; overflow: visible; }
+.rp-line { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+.rp-kpi { grid-column: span 2; }
+.rp-due { grid-column: span 4; }
+.rp-half { grid-column: span 6; }
+
+/* задачи: стопка цифр + столбцы сроков */
+.rp-due-in { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: end; flex: 1; }
+.rp-stack { margin: 0; }
+.rp-stack dt { font-size: 11.5px; color: var(--ink-3); }
+.rp-stack dd { margin: 1px 0 9px; font-weight: 700; font-size: 19px; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rp-stack dd:last-child { margin-bottom: 0; }
+.rp-stack dd em { font-style: normal; font-size: 12px; color: var(--rp-down); font-weight: 650; margin-left: 4px; }
+.rp-bars { display: flex; gap: 8px; height: 124px; }
+.rp-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.rp-bar .col { flex: 1; width: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; }
+.rp-bar s { text-decoration: none; font-size: 11px; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.rp-bar i { display: block; width: 100%; max-width: 26px; min-height: 4px; border-radius: 7px 7px 4px 4px; background: linear-gradient(to top, var(--rp-l), var(--rp-y) 45%, var(--rp-o)); transform-origin: bottom; }
+.rp-bar.hot i { background: linear-gradient(to top, var(--rp-y), var(--rp-o) 50%, var(--rp-r)); }
+.rp-bar.zero i { background: var(--rp-track); }
+.rp-bar b { font-size: 11px; color: var(--ink-3); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* тепловая карта визитов */
+.rp-heat-in { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: 20px; }
+.rp-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; align-content: start; }
+.rp-cal .dow { font-size: 11px; color: var(--ink-3); text-align: center; }
+.rp-day { aspect-ratio: 1.3; border-radius: 8px; background: var(--c, var(--rp-track)); color: var(--rp-day-ink); padding: 4px 6px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+.rp-day span { font-size: 10.5px; font-weight: 600; opacity: 0.72; line-height: 1; }
+.rp-day b { align-self: flex-end; font-size: 13px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.rp-day.dark { color: #fff; }
+.rp-day.none { color: var(--ink-3); }
+.rp-day.future { background: transparent; box-shadow: inset 0 0 0 1px var(--rp-track); color: var(--ink-3); }
+.rp-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+.rp-pair dt { font-size: 11.5px; color: var(--ink-3); }
+.rp-pair dd { margin: 2px 0 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.rp-aside { display: flex; flex-direction: column; gap: 10px; }
+.rp-aside .rp-meter { margin-top: 4px; }
+.rp-drow { display: grid; grid-template-columns: 1fr auto; gap: 5px 8px; font-size: 13px; font-weight: 600; padding-top: 6px; border: 0; background: none; width: 100%; text-align: left; cursor: pointer; border-radius: 6px; }
+.rp-drow em { font-style: normal; font-variant-numeric: tabular-nums; }
+.rp-drow em.bad { color: var(--rp-down); }
+.rp-drow i, .rp-share i { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: var(--rp-track); position: relative; overflow: hidden; display: block; }
+.rp-drow i::after, .rp-share i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--c); border-radius: 2px; transform-origin: left; }
+.rp-drow[aria-pressed="true"] { color: var(--ink); }
+.rp-drow[aria-pressed="true"] span { text-decoration: underline; text-decoration-color: var(--rp-o); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.rp-legend { display: flex; gap: 10px; flex-wrap: nowrap; white-space: nowrap; align-items: center; font-size: 11px; color: var(--ink-3); }
+.rp-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+
+/* подразделения */
+.rp-tablewrap { overflow-x: auto; margin: 0 -18px; padding: 0 18px; overscroll-behavior-x: contain; }
+.rp-table { width: 100%; min-width: 540px; border-collapse: collapse; font-size: 13.5px; }
+.rp-table th { font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 0 6px 10px; white-space: nowrap; border: 0; text-align: left; }
+.rp-table td { padding: 9px 6px; border: 0; border-top: 1px solid var(--rp-track); font-variant-numeric: tabular-nums; }
+.rp-table th.num, .rp-table td.num { text-align: right; }
+.rp-table td small { display: block; font-size: 11.5px; color: var(--ink-3); }
+.rp-table td.bad { color: var(--rp-down); font-weight: 650; }
+.rp-table tbody tr { cursor: pointer; transition: background-color 120ms ease; }
+.rp-table tbody tr.on td { background: color-mix(in srgb, var(--rp-y) 14%, transparent); }
+.rp-table tfoot td { background: var(--rp-track); font-weight: 700; border-top: 0; }
+.rp-table tfoot td:first-child { border-radius: 10px 0 0 10px; } .rp-table tfoot td:last-child { border-radius: 0 10px 10px 0; }
+.rp-table tfoot td small { font-weight: 500; display: block; }
+.rp-share { display: flex; align-items: center; gap: 8px; }
+.rp-share i { width: 56px; height: 6px; border-radius: 3px; flex: 0 0 auto; }
+.rp-share span { font-size: 12px; color: var(--ink-2); min-width: 36px; text-align: right; }
+
+/* тренд */
+.rp-plot { position: relative; height: 196px; margin-top: 4px; }
+.rp-plot svg { position: absolute; inset: 0 118px 0 0; width: calc(100% - 118px); height: 100%; overflow: visible; }
+.rp-endpill { position: absolute; left: calc(100% - 112px); transform: translateY(-50%); padding: 5px 11px; border-radius: 14px; font-size: 12.5px; font-weight: 700; color: #fff; background: linear-gradient(90deg, var(--rp-o), var(--rp-r)); box-shadow: 0 4px 12px rgb(232 88 42 / 0.28); white-space: nowrap; }
+.rp-endpill.gray { background: var(--rp-gray); color: var(--ink); box-shadow: 0 4px 12px rgb(22 24 26 / 0.08); }
+.rp-xaxis { position: relative; height: 18px; margin-right: 118px; }
+.rp-xaxis span { position: absolute; top: 2px; transform: translateX(-50%); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.rp-xaxis span:first-child { transform: none; }
+
+/* разделы + сроки в одной карточке */
+.rp-split { display: grid; grid-template-columns: 1fr 1fr; }
+.rp-split > div { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.rp-split > div:first-child { padding-right: 18px; }
+.rp-split > div + div { padding-left: 18px; border-left: 1px solid var(--rp-track); }
+.rp-split header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.rp-split header .rp-num { font-size: 24px; }
+.rp-seg { display: flex; gap: 4px; height: 10px; }
+.rp-seg i { display: block; border-radius: 5px; flex: var(--f) 1 0; min-width: 6px; background: var(--c); transform-origin: left; }
+.rp-list { list-style: none; margin: 0; padding: 0; }
+.rp-list li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto 40px; gap: 10px; align-items: center; padding: 7px 0; font-size: 13px; }
+.rp-list li i { width: 8px; height: 8px; border-radius: 4px; background: var(--c); }
+.rp-list li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-list li small { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.rp-list li b { text-align: right; font-variant-numeric: tabular-nums; }
+.rp-total { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--ink-3); border-top: 1px solid var(--rp-track); padding-top: 10px; margin-top: auto; }
+.rp-total b { color: var(--rp-up); font-size: 18px; font-variant-numeric: tabular-nums; }
+.rp-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center; }
+.rp-wd { padding: 6px 0 5px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--rp-track); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.rp-wd small { font-size: 10.5px; color: var(--ink-3); }
+.rp-wd b { font-size: 15px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.rp-wd i { width: 5px; height: 5px; border-radius: 3px; background: transparent; }
+.rp-wd.has i { background: var(--rp-o); } .rp-wd.p1 i { background: var(--rp-r); }
+.rp-wd.today { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.rp-dl { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; min-height: 40px; padding: 4px 0; border: 0; border-top: 1px solid var(--rp-track); background: none; text-align: left; font-size: 12.5px; cursor: pointer; }
+.rp-dl:first-child { border-top: 0; }
+.rp-dl .d { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.rp-dl .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-dl .t b { font-family: var(--font-fig); font-size: 14px; margin-right: 4px; }
+.rp-dl.warn .t { color: var(--rp-down); font-weight: 650; }
+.rp-empty { font-size: 13px; color: var(--ink-3); padding: 14px 0; }
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-pick:hover { box-shadow: 0 0 0 1px var(--line-2), var(--rp-shadow); }
+  .rp-table tbody tr:hover td { background: var(--paper-2); }
+  .rp-dl:hover .t, .rp-drow:hover span { text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
+}
+
+@media (max-width: 1180px) {
+  .rp-kpi { grid-column: span 3; }
+  .rp-due, .rp-half { grid-column: span 12; }
+}
+@media (max-width: 700px) {
+  .rp-grid { gap: 10px; }
+  .rp-kpi { grid-column: span 6; }
+  .rp-card { padding: 14px; border-radius: 18px; }
+  .rp-tablewrap { margin: 0 -14px; padding: 0 14px; }
+  .rp-num { font-size: 28px; }
+  .rp-heat-in, .rp-split { grid-template-columns: 1fr; }
+  .rp-split > div:first-child { padding-right: 0; padding-bottom: 16px; }
+  .rp-split > div + div { padding-left: 0; padding-top: 16px; border-left: 0; border-top: 1px solid var(--rp-track); }
+  .rp-day { aspect-ratio: 1.05; padding: 3px 4px; border-radius: 7px; }
+  .rp-day b { font-size: 11.5px; }
+  .rp-cal { gap: 4px; }
+  .rp-plot svg { inset: 0 96px 0 0; width: calc(100% - 96px); }
+  .rp-endpill { left: calc(100% - 92px); padding: 4px 8px; font-size: 11.5px; }
+  .rp-xaxis { margin-right: 96px; }
+}
+@media (max-width: 380px) { .rp-num { font-size: 25px; } .rp-due-in { grid-template-columns: 1fr; } }
+
+/* появление данных: только при входе на страницу, не при смене фильтра */
+@keyframes rp-grow-y { from { transform: scaleY(0); } }
+@keyframes rp-grow-x { from { transform: scaleX(0); } }
+@keyframes rp-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes rp-fade { from { opacity: 0; } }
+.enter .rp-bar i { animation: rp-grow-y 460ms var(--ease-out) both; animation-delay: calc(80ms + var(--i, 0) * 35ms); }
+.enter .rp-meter i, .enter .rp-seg i, .enter .rp-share i::after, .enter .rp-drow i::after { animation: rp-grow-x 520ms var(--ease-out) 80ms both; }
+.enter .rp-spark, .enter .rp-plot svg { animation: rp-wipe 620ms var(--ease-out) 120ms both; }
+.enter .rp-day { animation: rp-fade 300ms ease both; animation-delay: calc(var(--i, 0) * 12ms); }
+@media (prefers-reduced-motion: reduce) {
+  .enter .rp-bar i, .enter .rp-meter i, .enter .rp-seg i, .enter .rp-share i::after, .enter .rp-drow i::after, .enter .rp-spark, .enter .rp-plot svg, .enter .rp-day { animation: rp-fade 200ms ease both; }
+}
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -382,7 +569,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   "use strict";
   const D = window.AUDIT_DATA;
   const TPL = D.template;
-  const APP_VERSION = "0.3.0";
+  const APP_VERSION = "0.4.0";
   const STORE_KEY = "audit.sib.v1";
   const PASSWORD = "1234";
   const DUE_DAYS = { 1: 3, 2: 7, 3: 14 };
@@ -459,6 +646,8 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     send: '<path d="M4 12l16-7-6 16-3-6.5z"/><path d="M11 14.5L20 5"/>',
     photo: '<rect x="4" y="5" width="16" height="14" rx="1.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4.5 17l4.5-4.5 3.5 3.5 2.5-2.5 4.5 4.5"/>',
     undo: '<path d="M9 7L5 11l4 4"/><path d="M5 11h9a5 5 0 010 10h-3"/>',
+    report: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M7.5 15l3-3.2 2.5 2.2 3.5-4.5"/>',
+    down: '<path d="M6.5 9.5l5.5 5.5 5.5-5.5"/>',
   };
   const icon = (n, cls = "") => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
   const MARK = `<svg class="mark" viewBox="0 0 30 30" aria-hidden="true"><path d="M4 6.5h15.5l6.5 8.5-6.5 8.5H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="19" cy="15" r="1.9" fill="currentColor"/><path d="M8.5 15l2.3 2.3 4.2-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -791,6 +980,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     const u = me();
     const wide = u && (u.role === "sales" || u.role === "region");
     document.body.classList.toggle("wide", !!wide);
+    document.body.classList.toggle("xwide", !!wide && route.name === "svod");
     const tabList = tabsFor(u);
     return `
       <header class="topbar"><div class="in">
@@ -814,11 +1004,11 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const rp = reportOf(u.store), need = !rp || rp.status === "draft" || rp.status === "returned";
       return [{ id: "home", label: "Задачи", icon: "tasks", badge: act || "" }, { id: "report", label: "Фотоотчёт", icon: "photo", badge: need && rp && rp.status === "returned" ? "!" : "" }, { id: "visits", label: "Визиты", icon: "doc" }];
     }
-    const t = [{ id: "home", label: "Регион", icon: "chart" }, { id: "stores", label: "Магазины", icon: "store" }, { id: "rlist", label: "Фотоотчёт", icon: "photo" }, { id: "escal", label: "Эскалации", icon: "alert" }];
+    const t = [{ id: "home", label: "Регион", icon: "chart" }, { id: "svod", label: "Отчёт", icon: "report" }, { id: "stores", label: "Магазины", icon: "store" }, { id: "rlist", label: "Фотоотчёт", icon: "photo" }, { id: "escal", label: "Эскалации", icon: "alert" }];
     if (u.role === "sales") t.push({ id: "admin", label: "Настройки", icon: "gear" });
     return t;
   }
-  const currentTab = () => ({ home: "home", review: "review", dptasks: "dptasks", visits: "visits", escal: "escal", admin: "admin", rlist: "rlist", report: "report", stores: "stores" }[route.name] || (stack[0] ? stack[0].name : "home"));
+  const currentTab = () => ({ home: "home", review: "review", dptasks: "dptasks", visits: "visits", escal: "escal", admin: "admin", rlist: "rlist", report: "report", stores: "stores", svod: "svod" }[route.name] || (stack[0] ? stack[0].name : "home"));
 
   /* ------------------------------------------------------------ screens */
   const screens = {};
@@ -1566,6 +1756,219 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       ${S().seeded ? `<p class="banner">${icon("alert", "sm")}<span>Визиты, баллы и задачи — тестовые данные прототипа.</span></p>` : ""}`;
     return { title: "Аудит магазина", sub: `${ROLE_NAME[u.role]} · регион СИБ`, body };
   }
+  // ---- Сводный отчёт (директор по продажам / директор региона): визиты ДП, замечания, сроки исправления
+  let rpDiv = "all", rpOff = 0;
+  const nf = (n, dec = 0) => (n === null || n === undefined || Number.isNaN(n) ? "—" : Number(n).toLocaleString("ru-RU", { minimumFractionDigits: dec, maximumFractionDigits: dec }));
+  const avgOf = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+  const capFirst = (s) => s[0].toUpperCase() + s.slice(1);
+  const DOW_BY_DAY = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+  const MON_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  const MONTHS_DAT = ["январю", "февралю", "марту", "апрелю", "маю", "июню", "июлю", "августу", "сентябрю", "октябрю", "ноябрю", "декабрю"];
+  const SEC_TITLE = Object.fromEntries(TPL.sections.map((s) => [s.n, s.title]));
+  const dMini = (d) => `${d.getDate()} ${MON_SHORT[d.getMonth()]}`;
+  // шкала балла дня: красно-оранжевый (плохо) → жёлтый → зелёный (хорошо)
+  const HEAT = [[70, [221, 74, 38]], [75, [232, 100, 42]], [80, [240, 134, 44]], [85, [245, 164, 50]], [90, [246, 195, 59]], [95, [214, 210, 62]], [100, [150, 200, 66]]];
+  function heatRgb(s) {
+    if (s <= HEAT[0][0]) return HEAT[0][1];
+    for (let i = 1; i < HEAT.length; i++) if (s <= HEAT[i][0]) { const [a, ca] = HEAT[i - 1], [b, cb] = HEAT[i], k = (s - a) / (b - a); return ca.map((c, j) => Math.round(c + (cb[j] - c) * k)); }
+    return HEAT[HEAT.length - 1][1];
+  }
+  function smoothPath(pts) { // Catmull-Rom → кубические Безье
+    if (pts.length < 2) return "";
+    let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      d += ` C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)},${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)},${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+    }
+    return d;
+  }
+  let gradSeq = 0;
+  const lineGrad = (id, w) => `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${w}" y2="0"><stop offset="0" style="stop-color:var(--rp-g)"/><stop offset="0.55" style="stop-color:var(--rp-y)"/><stop offset="1" style="stop-color:var(--rp-o)"/></linearGradient>`;
+  function spark(vals) {
+    const w = 200, h = 44, v = vals.filter((x) => x !== null);
+    if (v.length < 2) return `<div class="rp-spark" aria-hidden="true"></div>`;
+    const lo = Math.min(...v), hi = Math.max(...v), r = hi - lo || 1, pts = [];
+    vals.forEach((x, i) => { if (x !== null) pts.push([(i / Math.max(1, vals.length - 1)) * w, h - 5 - ((x - lo) / r) * (h - 10)]); });
+    const id = "rpg" + ++gradSeq;
+    return `<svg class="rp-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><defs>${lineGrad(id, w)}</defs><path class="rp-line" d="${smoothPath(pts)}" stroke="url(#${id})"/></svg>`;
+  }
+  const clamp01 = (x) => Math.max(0, Math.min(1, x || 0));
+  const meter = (v, mark, label) => `<div class="rp-meter" role="img" aria-label="${esc(label)}"><i style="width:${(clamp01(v) * 100).toFixed(1)}%"></i>${mark === null || mark === undefined ? "" : `<b style="left:${(clamp01(mark) * 100).toFixed(1)}%"></b>`}</div>`;
+  const coverColor = (c, plan) => (c >= plan - 0.02 ? "var(--rp-g)" : c >= plan - 0.15 ? "var(--rp-o)" : "var(--rp-r)");
+  function deltaNote(cur, prev, { dec = 0, unit = "", goodUp = true, ref }) {
+    if (cur === null || prev === null) return `<p class="rp-note">нет данных для сравнения</p>`;
+    const d = Math.round((cur - prev) * 10 ** dec) / 10 ** dec;
+    const cls = d === 0 ? "" : (d > 0) === goodUp ? "up" : "down";
+    return `<p class="rp-note ${cls}">${d > 0 ? "+" : d < 0 ? "−" : "±"}${nf(Math.abs(d), dec)}${unit} ${ref}</p>`;
+  }
+  const rpPick = (key, label, opts, val) => {
+    const curL = (opts.find(([k]) => k === val) || opts[0])[1];
+    return `<label class="rp-pick"><span>${label}</span><b>${esc(curL)}</b>${icon("down")}<select data-rpsel="${key}" aria-label="${label}">${opts.map(([k, l]) => `<option value="${esc(k)}"${k === val ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`;
+  };
+  function trendChart(trend) {
+    const W = 1000, H = 200, n = trend.length;
+    const sv = trend.map((t) => t.score).filter((x) => x !== null), pv = trend.map((t) => t.per).filter((x) => x !== null);
+    if (sv.length < 2) return `<p class="rp-empty">За последние 8 недель визитов слишком мало для графика.</p>`;
+    const map = (vals, lo, hi, top, bot) => { const r = hi - lo || 1, pts = []; vals.forEach((x, i) => { if (x !== null) pts.push([(i / (n - 1)) * W, bot - ((x - lo) / r) * (bot - top)]); }); return pts; };
+    const sp = map(trend.map((t) => t.score), Math.min(...sv), Math.max(...sv), 16, 104);
+    const pp = map(trend.map((t) => t.per), Math.min(...pv), Math.max(...pv), 128, 184);
+    const sd = smoothPath(sp), pd = smoothPath(pp), id = "rpt" + ++gradSeq, fid = "rpf" + gradSeq;
+    const area = `${sd} L${sp[sp.length - 1][0].toFixed(1)},${H} L${sp[0][0].toFixed(1)},${H} Z`;
+    const yS = (sp[sp.length - 1][1] / H) * 100, yP = (pp[pp.length - 1][1] / H) * 100;
+    const ticks = [0, 1, 2, 3].map((k) => n - 1 - k * 14).filter((i) => i >= 0).reverse();
+    return `<div class="rp-plot">
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Средний балл ${nf(sv[sv.length - 1], 1)} %, замечаний на визит ${nf(pv[pv.length - 1], 1)}">
+          <defs>${lineGrad(id, W)}<linearGradient id="${fid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--rp-o);stop-opacity:0.18"/><stop offset="1" style="stop-color:var(--rp-o);stop-opacity:0"/></linearGradient></defs>
+          <path d="${area}" fill="url(#${fid})" stroke="none"/>
+          <path class="rp-line" d="${pd}" style="stroke:var(--rp-gray)"/>
+          <path class="rp-line" d="${sd}" stroke="url(#${id})" style="stroke-width:2.6"/>
+        </svg>
+        <span class="rp-endpill" style="top:${yS.toFixed(1)}%">Балл ${nf(sv[sv.length - 1], 1)} %</span>
+        <span class="rp-endpill gray" style="top:${yP.toFixed(1)}%">${nf(pv[pv.length - 1], 1)} на визит</span>
+      </div>
+      <div class="rp-xaxis" aria-hidden="true">${ticks.map((i) => `<span style="left:${((i / (n - 1)) * 100).toFixed(1)}%">${dMini(trend[i].d)}</span>`).join("")}</div>`;
+  }
+
+  screens.svod = () => {
+    const u = me(), now = new Date(), t0 = today0();
+    const ms = new Date(now.getFullYear(), now.getMonth() - rpOff, 1), me1 = new Date(ms.getFullYear(), ms.getMonth() + 1, 1);
+    const ps = new Date(ms.getFullYear(), ms.getMonth() - 1, 1);
+    const cur = rpOff === 0, daysIn = new Date(ms.getFullYear(), ms.getMonth() + 1, 0).getDate(), elapsed = cur ? now.getDate() : daysIn;
+    const pe = cur ? new Date(ps.getFullYear(), ps.getMonth(), Math.min(elapsed, new Date(ps.getFullYear(), ps.getMonth() + 1, 0).getDate()) + 1) : ms;
+    const ref = cur ? `к ${elapsed} ${MON_SHORT[ps.getMonth()]}` : `к ${MONTHS_DAT[ps.getMonth()]}`;
+    const monthLabel = `${MONTHS_NOM[ms.getMonth()]} ${ms.getFullYear()}`;
+    const inDiv = (sid) => rpDiv === "all" || STORES[sid].div === rpDiv;
+    const stores = D.stores.filter((s) => inDiv(s.id));
+    const signed = S().visits.filter((v) => v.status === "signed");
+    const between = (v, a, b) => { const d = new Date(v.startedAt); return d >= a && d < b; };
+    const scores = (a) => a.filter((v) => v.score !== null).map((v) => v.score);
+    const vsAll = signed.filter((v) => between(v, ms, me1));
+    const vs = vsAll.filter((v) => inDiv(v.store)), pv = signed.filter((v) => inDiv(v.store) && between(v, ps, pe));
+
+    const visited = new Set(vs.map((v) => v.store)).size, cover = stores.length ? visited / stores.length : 0, plan = cur ? elapsed / daysIn : 1;
+    const sc = avgOf(scores(vs)), psc = avgOf(scores(pv));
+    const fails = vs.reduce((a, v) => a + v.fails, 0);
+    const vids = new Set(vs.map((v) => v.id)), mTasks = S().tasks.filter((t) => vids.has(t.visit)), fixed = mTasks.filter((t) => t.status === "accepted").length;
+    const fixShare = mTasks.length ? fixed / mTasks.length : null;
+
+    const days = Array.from({ length: daysIn }, (_, i) => {
+      const d = new Date(ms.getFullYear(), ms.getMonth(), i + 1), k = ymd(d), dv = vs.filter((v) => ymd(v.startedAt) === k), s = scores(dv);
+      return { d, n: dv.length, score: avgOf(s), sum: s.reduce((a, b) => a + b, 0), cnt: s.length, future: d > t0 };
+    });
+    let c = 0, ss = 0, sn = 0; const cum = [], cumSc = [];
+    days.slice(0, elapsed).forEach((x) => { c += x.n; cum.push(c); ss += x.sum; sn += x.cnt; cumSc.push(sn ? ss / sn : null); });
+
+    // задачи — текущее состояние
+    const active = S().tasks.filter((t) => inDiv(t.store) && t.status !== "accepted");
+    const overdue = active.filter((t) => overdueDays(t) > 0), onReview = active.filter((t) => t.status === "review");
+    const week = Array.from({ length: 7 }, (_, i) => { const d = new Date(t0.getTime() + i * DAY), k = ymd(d), ts = active.filter((t) => t.status !== "review" && t.due === k); return { d, ts, p1: ts.some((t) => t.prio === 1) }; });
+    const wmax = Math.max(1, ...week.map((w) => w.ts.length)), wsum = week.reduce((a, w) => a + w.ts.length, 0);
+    const upcoming = week.flatMap((w) => w.ts).sort((a, b) => a.due.localeCompare(b.due) || a.prio - b.prio);
+
+    // подразделения (всегда весь регион, выбранное подсвечено)
+    const divRows = D.dps.map((dp) => {
+      const n = D.stores.filter((s) => s.div === dp.div).length, dv = vsAll.filter((v) => STORES[v.store].div === dp.div);
+      const vis = new Set(dv.map((v) => v.store)).size, f = dv.reduce((a, v) => a + v.fails, 0);
+      return { dp, n, vis, cover: n ? vis / n : 0, visits: dv.length, fails: f, per: dv.length ? f / dv.length : null, score: avgOf(scores(dv)),
+        od: S().tasks.filter((t) => STORES[t.store].div === dp.div && overdueDays(t) > 0).length };
+    });
+    const tot = divRows.reduce((a, r) => ({ n: a.n + r.n, vis: a.vis + r.vis, visits: a.visits + r.visits, fails: a.fails + r.fails, od: a.od + r.od }), { n: 0, vis: 0, visits: 0, fails: 0, od: 0 });
+    const allIds = new Set(vsAll.map((v) => v.id)), allTasks = S().tasks.filter((t) => allIds.has(t.visit)), allFixed = allTasks.filter((t) => t.status === "accepted").length;
+
+    // замечания по разделам
+    const secCnt = {};
+    for (const v of vs) for (const [id, a] of Object.entries(v.answers)) if (a.v === "fail" && ITEM[id]) secCnt[ITEM[id].sec] = (secCnt[ITEM[id].sec] || 0) + 1;
+    const secList = Object.entries(secCnt).map(([n, k]) => ({ n: +n, k, title: SEC_TITLE[n] })).sort((a, b) => b.k - a.k);
+    const SEC_C = ["var(--rp-r)", "var(--rp-o)", "var(--rp-l)", "var(--rp-g)"];
+    const secTop = secList.slice(0, 4).map((x, i) => ({ ...x, c: SEC_C[i] }));
+    const secRest = secList.slice(4).reduce((a, x) => a + x.k, 0);
+    if (secRest) secTop.push({ n: 0, k: secRest, title: `Прочие разделы · ${secList.length - 4}`, c: "var(--rp-gray)" });
+    const secSum = secList.reduce((a, x) => a + x.k, 0) || 1;
+
+    // тренд: 8 недель, скользящее среднее за 7 дней
+    const scope = signed.filter((v) => inDiv(v.store)), trend = [];
+    for (let i = 55; i >= 0; i--) {
+      const end = new Date(t0.getTime() - i * DAY), w = scope.filter((v) => between(v, new Date(end.getTime() - 6 * DAY), new Date(end.getTime() + DAY)));
+      trend.push({ d: end, score: avgOf(scores(w)), per: w.length ? w.reduce((a, v) => a + v.fails, 0) / w.length : null });
+    }
+
+    const scopeName = rpDiv === "all" ? "Регион СИБ" : `${rpDiv} · ${DP_BY_DIV[rpDiv].short}`;
+    const lead = (ms.getDay() + 6) % 7;
+    const body = `
+      <div class="rp-head"><div><h1>Сводный отчёт</h1><p>${esc(scopeName)} · ${stores.length} ${plural(stores.length, "магазин", "магазина", "магазинов")} · ${monthLabel}</p></div>
+        <div class="rp-picks">${rpPick("div", "Подразделение", [["all", "Весь регион"], ...D.dps.map((d) => [d.div, d.div])], rpDiv)}${rpPick("month", "Период", [0, 1, 2].map((o) => { const x = new Date(now.getFullYear(), now.getMonth() - o, 1); return [String(o), `${capFirst(MONTHS_NOM[x.getMonth()])} ${x.getFullYear()}`]; }), String(rpOff))}</div></div>
+      <div class="rp-grid">
+        <article class="rp-card rp-kpi"><header><h3>Охват визитами</h3><span class="rp-tag">ОХВ</span></header>
+          <div class="rp-num">${nf(cover * 100)}<small>%</small></div>
+          <p class="rp-note">${visited} из ${stores.length} ${plural(stores.length, "магазина", "магазинов", "магазинов")}</p>
+          ${meter(cover, plan, `Охват ${nf(cover * 100)} %, план ${nf(plan * 100)} %`)}
+          <p class="rp-cap">${cur ? `план на ${dMini(now)} · ${nf(plan * 100)} %` : "план · 100 %"}</p></article>
+        <article class="rp-card rp-kpi"><header><h3>Визиты ДП</h3><span class="rp-tag">чек-лист</span></header>
+          <div class="rp-num">${nf(vs.length)}</div>
+          ${deltaNote(vs.length, pv.length, { ref })}
+          ${spark(cum)}</article>
+        <article class="rp-card rp-kpi"><header><h3>Средний балл</h3><span class="rp-tag">%</span></header>
+          <div class="rp-num">${nf(sc, 1)}${sc === null ? "" : "<small>%</small>"}</div>
+          ${deltaNote(sc, psc, { dec: 1, unit: " п.п.", ref })}
+          ${spark(cumSc)}</article>
+        <article class="rp-card rp-kpi"><header><h3>Замечания</h3><span class="rp-tag">шт</span></header>
+          <div class="rp-num">${nf(fails)}</div>
+          <p class="rp-note">${vs.length ? `≈ ${nf(fails / vs.length, 1)} на визит` : "визитов не было"}</p>
+          ${meter(fixShare, 0.9, `Устранено ${nf((fixShare || 0) * 100)} %, цель 90 %`)}
+          <p class="rp-cap">устранено ${fixShare === null ? "—" : nf(fixShare * 100) + " %"} · цель 90 %</p></article>
+        <article class="rp-card rp-due"><header><h3>Задачи магазинов</h3><span class="rp-sub">срок исправления · 7 дней</span></header>
+          <div class="rp-due-in">
+            <dl class="rp-stack"><dt>Активных задач</dt><dd>${nf(active.length)}</dd>
+              <dt>Просрочено</dt><dd>${nf(overdue.length)}${active.length ? `<em>${nf((overdue.length / active.length) * 100, 1)} %</em>` : ""}</dd>
+              <dt>На проверке у ДП</dt><dd>${nf(onReview.length)}</dd></dl>
+            <div class="rp-bars" role="img" aria-label="Сроки исправления по дням: ${week.map((w) => `${dMini(w.d)} — ${w.ts.length}`).join(", ")}">${week.map((w, i) => `<div class="rp-bar${!w.ts.length ? " zero" : w.ts.length === wmax ? " hot" : ""}" style="--i:${i}"><div class="col">${w.ts.length ? `<s>${w.ts.length}</s>` : ""}<i style="height:${w.ts.length ? Math.max(8, Math.round((w.ts.length / wmax) * 100)) : 4}%"></i></div><b>${w.d.getDate()}</b></div>`).join("")}</div>
+          </div></article>
+
+        <article class="rp-card rp-half"><header><div><h3>Визиты по дням</h3><p class="rp-sub">средний балл проверок за день · ${monthLabel}</p></div>
+            <div class="rp-legend" aria-hidden="true"><span><i style="background:${`rgb(${heatRgb(72).join(" ")})`}"></i>&lt;75</span><span><i style="background:${`rgb(${heatRgb(86).join(" ")})`}"></i>85</span><span><i style="background:${`rgb(${heatRgb(99).join(" ")})`}"></i>95+</span></div></header>
+          <div class="rp-heat-in">
+            <div class="rp-cal">${["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => `<span class="dow">${d}</span>`).join("")}${"<span></span>".repeat(lead)}${days.map((x, i) => {
+              if (x.future) return `<div class="rp-day future"><span>${x.d.getDate()}</span></div>`;
+              if (x.score === null) return `<div class="rp-day none" style="--i:${i}" role="img" aria-label="${dMini(x.d)}: визитов нет"><span>${x.d.getDate()}</span><b>—</b></div>`;
+              return `<div class="rp-day${x.score < 78 ? " dark" : ""}" style="--c:rgb(${heatRgb(x.score).join(" ")});--i:${i}" role="img" title="${dMini(x.d)}: ${x.n} ${plural(x.n, "визит", "визита", "визитов")}, балл ${nf(x.score, 1)} %" aria-label="${dMini(x.d)}: ${x.n} ${plural(x.n, "визит", "визита", "визитов")}, средний балл ${nf(x.score, 1)} %"><span>${x.d.getDate()}</span><b>${Math.round(x.score)}%</b></div>`;
+            }).join("")}</div>
+            <div class="rp-aside">
+              <dl class="rp-pair"><div><dt>Проверено</dt><dd>${visited}</dd></div><div><dt>Без визита</dt><dd>${stores.length - visited}</dd></div></dl>
+              ${meter(cover, plan, `Охват ${nf(cover * 100)} %`)}
+              <p class="rp-cap">охват <b style="color:var(--ink)">${nf(cover * 100)} %</b> · ${cur ? `план ${nf(plan * 100)} %` : "за месяц"}</p>
+              <div>${divRows.map((r) => `<button class="rp-drow" data-rpdiv="${esc(r.dp.div)}" aria-pressed="${rpDiv === r.dp.div}"><span>${esc(r.dp.div)}</span><em class="${r.cover < plan - 0.15 ? "bad" : ""}">${nf(r.cover * 100)} %</em><i style="--w:${(r.cover * 100).toFixed(1)}%;--c:${coverColor(r.cover, plan)}"></i></button>`).join("")}</div>
+            </div>
+          </div></article>
+
+        <article class="rp-card rp-half"><header><div><h3>Подразделения</h3><p class="rp-sub">визиты ДП · ${monthLabel} · просрочено — на сегодня</p></div><span class="rp-tag">устранено<b>${nf(allFixed)}</b>из ${nf(allTasks.length)}</span></header>
+          <div class="rp-tablewrap"><table class="rp-table">
+            <thead><tr><th>Подразделение</th><th>Охват</th><th class="num">Визиты</th><th class="num">Замеч.</th><th class="num">На визит</th><th class="num">Балл</th><th class="num" title="Просрочено задач на сегодня">Просроч.</th></tr></thead>
+            <tbody>${divRows.map((r) => `<tr class="click${rpDiv === r.dp.div ? " on" : ""}" data-rpdiv="${esc(r.dp.div)}" tabindex="0" aria-label="${esc(r.dp.div)}: показать только это подразделение"><td><b>${esc(r.dp.div)}</b><small>${esc(r.dp.short)} · ${r.n} маг.</small></td>
+              <td><span class="rp-share"><i style="--w:${(r.cover * 100).toFixed(1)}%;--c:${coverColor(r.cover, plan)}"></i><span>${nf(r.cover * 100)} %</span></span></td>
+              <td class="num">${r.visits}</td><td class="num">${r.fails}</td><td class="num">${nf(r.per, 1)}</td>
+              <td class="num${r.score !== null && r.score < 85 ? " bad" : ""}">${nf(r.score, 1)}</td><td class="num${r.od ? " bad" : ""}">${r.od}</td></tr>`).join("")}</tbody>
+            <tfoot><tr><td>Итого<small>${tot.n} маг.</small></td><td><span class="rp-share"><i style="--w:${((tot.vis / tot.n) * 100).toFixed(1)}%;--c:${coverColor(tot.vis / tot.n, plan)}"></i><span>${nf((tot.vis / tot.n) * 100)} %</span></span></td><td class="num">${tot.visits}</td><td class="num">${tot.fails}</td><td class="num">${nf(tot.visits ? tot.fails / tot.visits : null, 1)}</td><td class="num">${nf(avgOf(scores(vsAll)), 1)}</td><td class="num">${tot.od}</td></tr></tfoot>
+          </table></div></article>
+
+        <article class="rp-card rp-half"><header><div><h3>Балл и замечания</h3><p class="rp-sub">${esc(scopeName)} · 8 недель, среднее за 7 дней</p></div></header>
+          ${trendChart(trend)}</article>
+
+        <article class="rp-card rp-half rp-split">
+          <div><header><div><h3>Замечания по разделам</h3><p class="rp-sub">${monthLabel} · ${vs.length} ${plural(vs.length, "визит", "визита", "визитов")}</p></div><span class="rp-num">${nf(fails)}</span></header>
+            ${secTop.length ? `<div class="rp-seg" role="img" aria-label="Доли разделов">${secTop.map((x) => `<i style="--f:${x.k};--c:${x.c}"></i>`).join("")}</div>
+            <ul class="rp-list">${secTop.map((x) => `<li><i style="--c:${x.c}"></i><span>${x.n ? `${x.n}. ` : ""}${esc(x.title)}</span><small>${nf((x.k / secSum) * 100)} %</small><b>${x.k}</b></li>`).join("")}</ul>` : `<p class="rp-empty">Замечаний за период нет.</p>`}
+            <div class="rp-total"><span>Устранено магазинами</span><span><b>${nf(fixed)}</b> из ${nf(mTasks.length)}</span></div></div>
+          <div><header><div><h3>Сроки · 7 дней</h3><p class="rp-sub">открытые и возвращённые задачи</p></div><span class="rp-num">${wsum}</span></header>
+            <div class="rp-week">${week.map((w, i) => `<div class="rp-wd${w.ts.length ? " has" : ""}${w.p1 ? " p1" : ""}${i === 0 ? " today" : ""}" title="${w.ts.length} ${plural(w.ts.length, "задача", "задачи", "задач")}"><small>${DOW_BY_DAY[w.d.getDay()]}</small><b>${w.d.getDate()}</b><i></i></div>`).join("")}</div>
+            <div>${overdue.length ? `<button class="rp-dl warn" data-tab="escal"><span class="d">сейчас</span><span class="t">Просрочено ${overdue.length} ${plural(overdue.length, "задача", "задачи", "задач")} — эскалации</span>${icon("right", "sm")}</button>` : ""}
+              ${upcoming.slice(0, overdue.length ? 4 : 5).map((t) => `<button class="rp-dl" data-task="${t.id}"><span class="d">${dMini(parseYmd(t.due))}</span><span class="t"><b>${t.store}</b>${esc(STORES[t.store].place)} · ${esc(SEC_TITLE[t.sec] || "")}</span><span class="pill p${t.prio}">П${t.prio}</span></button>`).join("")}
+              ${!upcoming.length && !overdue.length ? `<p class="rp-empty">На ближайшие 7 дней сроков нет.</p>` : ""}</div></div>
+        </article>
+      </div>
+      ${S().seeded ? `<p class="banner">${icon("alert", "sm")}<span>Визиты, баллы и задачи — тестовые данные прототипа.</span></p>` : ""}`;
+    return { title: "Сводный отчёт", sub: `${ROLE_NAME[u.role]} · регион СИБ`, body };
+  };
+
   screens.escal = () => {
     const u = me();
     const minDays = u.role === "region" ? 7 : 3;
@@ -1633,6 +2036,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const rd = t.closest("[data-rdiv]"); if (rd) { rDiv = rd.dataset.rdiv; return render(false); }
       const f = t.closest("[data-filter]"); if (f) { dpFilter = dpFilter === f.dataset.filter && f.closest(".strip") ? "all" : f.dataset.filter; return render(false); }
       const tf = t.closest("[data-tfilter]"); if (tf) { taskFilter = tf.dataset.tfilter; return render(false); }
+      const rq = t.closest("[data-rpdiv]"); if (rq) { rpDiv = rpDiv === rq.dataset.rpdiv ? "all" : rq.dataset.rpdiv; return render(false); }
       const dv = t.closest("[data-div]"); if (dv) { regionDiv = regionDiv === dv.dataset.div && dv.tagName === "TR" ? "all" : dv.dataset.div; return render(false); }
       const a = t.closest("[data-act]"); if (!a) return;
       if (a.dataset.act === "start") return startVisit(a.dataset.store);
@@ -1641,6 +2045,11 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       if (a.dataset.act === "reset") return confirmReset();
     });
     root.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("tr.click")) e.target.click(); });
+    root.addEventListener("change", (e) => {
+      const sel = e.target.closest("[data-rpsel]"); if (!sel) return;
+      if (sel.dataset.rpsel === "div") rpDiv = sel.value; else rpOff = Number(sel.value) || 0;
+      render(false);
+    });
     root.addEventListener("input", (e) => {
       if (e.target.id !== "sq") return;
       const q = e.target.value.trim().toLowerCase(); let n = 0;
