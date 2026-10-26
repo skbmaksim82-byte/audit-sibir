@@ -23,9 +23,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 HERE = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("AUDIT_DB", HERE / "data" / "audit.db"))
 PHOTO_DIR = Path(os.environ.get("AUDIT_PHOTOS", HERE / "data" / "photos"))
@@ -34,6 +35,8 @@ PHOTO_DAYS = int(os.environ.get("AUDIT_PHOTO_DAYS", "120"))
 SESSION_DAYS = int(os.environ.get("AUDIT_SESSION_DAYS", "30"))
 MAX_PHOTO = 8 * 1024 * 1024
 MAX_DOC = 2 * 1024 * 1024
+# Приложение с GitHub Pages обращается к серверу с другого адреса — разрешаем только его.
+CORS_ORIGINS = [o.strip() for o in os.environ.get("AUDIT_CORS", "https://skbmaksim82-byte.github.io").split(",") if o.strip()]
 
 REGION = json.loads((HERE / "region.json").read_text(encoding="utf-8"))
 STORE_DIV: dict[str, str] = REGION["stores"]
@@ -148,6 +151,21 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Аудит магазина", version=VERSION, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+if CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET", "POST", "PUT"],
+        allow_headers=["Authorization", "Content-Type"], max_age=86400,
+    )
+
+
+def client_ip(request: Request) -> str:
+    """За туннелем или nginx все запросы приходят с 127.0.0.1 — берём адрес из X-Forwarded-For."""
+    host = request.client.host if request.client else "?"
+    if host in ("127.0.0.1", "::1"):
+        fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        if fwd:
+            return fwd
+    return host
 
 
 @app.get("/", include_in_schema=False)
@@ -168,7 +186,7 @@ async def login(request: Request) -> dict:
     body = await request.json()
     lg = str(body.get("login", "")).strip().lower()
     pw = str(body.get("password", ""))
-    ip = request.client.host if request.client else "?"
+    ip = client_ip(request)
     if throttled(lg) or throttled(ip):
         raise HTTPException(429, "Слишком много попыток. Подождите 15 минут.")
     with db() as con:

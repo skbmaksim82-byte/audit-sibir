@@ -616,7 +616,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   "use strict";
   const D = window.AUDIT_DATA;
   const TPL = D.template;
-  const APP_VERSION = "0.5.0";
+  const APP_VERSION = "0.6.0";
   const STORE_KEY = "audit.sib.v1";
   const PASSWORD = "1234";
   const DUE_DAYS = { 1: 3, 2: 7, 3: 14 };
@@ -702,7 +702,23 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
 
   /* ------------------------------------------------------------ сервер пилота: режим определяется при запуске */
   // Есть сервер (api/health отвечает) — данные общие для всех ролей. Нет (GitHub Pages, файл) — демо в браузере.
-  const SRV = { on: false, base: "api/", stores: null, status: "ok" };
+  // Приложение с GitHub Pages работает с сервером пилота по ссылке ...?api=https://адрес-сервера.
+  // Адрес запоминается на телефоне; ?api=off возвращает демо-режим.
+  const API_LS = "audit.api";
+  const REMOTE_API = (() => {
+    try {
+      const u = new URL(location.href), a = u.searchParams.get("api");
+      if (a !== null) {
+        const v = a.trim().replace(/\/+$/, "");
+        if (!v || v === "off") localStorage.removeItem(API_LS);
+        else if (/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(v)) localStorage.setItem(API_LS, v.toLowerCase());
+        u.searchParams.delete("api");
+        history.replaceState(null, "", u.pathname + u.search + u.hash);
+      }
+      return localStorage.getItem(API_LS) || "";
+    } catch (e) { return ""; }
+  })();
+  const SRV = { on: false, base: REMOTE_API ? REMOTE_API + "/api/" : "api/", remote: REMOTE_API, stores: null, status: "ok" };
   async function srvFetch(path, opt = {}) {
     const s = Store.get(), token = s && s.session && s.session.token;
     const r = await fetch(SRV.base + path, { ...opt, cache: "no-store", headers: { ...(opt.headers || {}), ...(token ? { Authorization: "Bearer " + token } : {}) } });
@@ -1302,13 +1318,13 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       { login: "region", label: "Директор региона", sub: "Регион СИБ, 78 магазинов" },
     ];
     return `<div class="login">
-      <div class="hero"><div class="in">${MARK}<h1>Аудит магазина</h1><p>${SRV.on ? `Пилот: ${D.stores.map((x) => `магазин ${x.id}, ${esc(x.place)}`).join("; ")}. Чек-лист ДП, фотоотчёт, проверка ДПР и ДР.` : "Проверка магазина по чек-листу ДП, замечания с фото и их исправление. Регион СИБ."}</p></div></div>
+      <div class="hero"><div class="in">${MARK}<h1>Аудит магазина</h1><p>${SRV.on && !SRV.stores ? "Пилот. Сервер пока не отвечает: проверьте интернет и обновите страницу." : SRV.on ? `Пилот: ${D.stores.map((x) => `магазин ${x.id}, ${esc(x.place)}`).join("; ")}. Чек-лист ДП, фотоотчёт, проверка ДПР и ДР.` : "Проверка магазина по чек-листу ДП, замечания с фото и их исправление. Регион СИБ."}</p></div></div>
       <form id="loginForm" novalidate>
         <div class="field"><label for="lg">Логин</label><input class="input" id="lg" name="login" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" required></div>
         <div class="field"><label for="pw">Пароль</label><input class="input" id="pw" name="password" type="password" autocomplete="current-password" enterkeyhint="go" required></div>
         <p class="err" id="lgErr" hidden></p>
         <button class="btn primary block" type="submit">Войти</button>
-        <p class="hint">Логин и пароль выдаёт директор по продажам.</p>
+        <p class="hint">Логин и пароль выдаёт директор по продажам.${SRV.remote ? `<br>Сервер пилота: ${esc(SRV.remote.replace(/^https:\/\//, ""))}` : ""}</p>
       </form>
       ${SRV.on ? "" : `<div class="demo">
         <h2>Тестовый вход, пароль ${PASSWORD}</h2>
@@ -2402,7 +2418,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   /* ------------------------------------------------------------ boot */
   try { const th = localStorage.getItem("audit.theme"); if (th) document.documentElement.dataset.theme = th; } catch (e) { /* ignore */ }
   async function probeServer() {
-    if (location.protocol === "file:" || /github\.io$/.test(location.hostname)) return null;
+    if (!SRV.remote && (location.protocol === "file:" || /github\.io$/.test(location.hostname))) return null;
     const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 4000);
     try { const r = await fetch(SRV.base + "health", { cache: "no-store", signal: ctl.signal }); const j = r.ok ? await r.json() : null; return j && j.app === "audit-sibir" ? j : null; }
     catch (e) { return null; } finally { clearTimeout(tm); }
@@ -2416,8 +2432,10 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   (async () => {
     let remembered = null; try { remembered = JSON.parse(localStorage.getItem("audit.srv.health") || "null"); } catch (e) { /* ignore */ }
     const h = await probeServer();
-    if (h) { try { localStorage.setItem("audit.srv.health", JSON.stringify(h)); } catch (e) { /* ignore */ } }
-    const info = h || (remembered && location.protocol !== "file:" ? remembered : null); // без связи в магазине — работаем с сохранённым
+    if (h) { h.base = SRV.base; try { localStorage.setItem("audit.srv.health", JSON.stringify(h)); } catch (e) { /* ignore */ } }
+    if (remembered && remembered.base && remembered.base !== SRV.base) remembered = null; // сохранено от другого сервера
+    // без связи в магазине — работаем с сохранённым; с GitHub Pages и адресом сервера — всегда режим пилота
+    const info = h || (remembered && location.protocol !== "file:" ? remembered : null) || (SRV.remote ? { stores: null } : null);
     if (info) { SRV.on = true; SRV.stores = info.stores; usePilotStores(info.stores); if (!h) SRV.status = "offline"; }
     Store.init();
     render(false);
