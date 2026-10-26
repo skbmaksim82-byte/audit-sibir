@@ -32,25 +32,36 @@ Add-Type -Namespace Audit -Name Power -MemberDefinition '[DllImport("kernel32.dl
 [void][Audit.Power]::SetThreadExecutionState([uint32]"0x80000001")   # ES_CONTINUOUS | ES_SYSTEM_REQUIRED
 
 # --- остановить сервер и туннель от прошлого запуска --------------------------------
+# python.exe из venv на Windows запускает дочерний python — гасим всё дерево и всё, что слушает порт.
 foreach ($n in "server.pid", "tuna.pid") {
   $f = Join-Path $Root $n
-  if (Test-Path $f) { try { Stop-Process -Id ([int](Get-Content $f)) -Force -ErrorAction SilentlyContinue } catch {} ; Remove-Item $f -Force }
+  if (Test-Path $f) { $id = (Get-Content $f -Raw).Trim(); if ($id) { & taskkill.exe /PID $id /T /F 2>&1 | Out-Null }; Remove-Item $f -Force }
 }
+try { Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop | ForEach-Object { & taskkill.exe /PID $_.OwningProcess /T /F 2>&1 | Out-Null } } catch {}
+Get-Process tuna -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
+  Where-Object { $_.CommandLine -like "*uvicorn*app:app*$Port*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+Start-Sleep -Seconds 1
 
 # --- 1. свежая версия приложения с GitHub ------------------------------------------
 Step "Загружаю приложение с GitHub"
-$zip = Join-Path $Root "app.zip"
+$zip = Join-Path $Root "app.zip"; $tmp = Join-Path $Root "app-new"; $old = Join-Path $Root "app-old"
 try {
   Invoke-WebRequest "https://github.com/$Repo/archive/refs/heads/main.zip" -OutFile $zip -UseBasicParsing
-  $tmp = Join-Path $Root "app-new"
   if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
   Expand-Archive $zip -DestinationPath $tmp -Force
   $src = Get-ChildItem $tmp -Directory | Select-Object -First 1
-  if (Test-Path $App) { Remove-Item $App -Recurse -Force }
-  Move-Item $src.FullName $App
-  Remove-Item $tmp -Recurse -Force; Remove-Item $zip -Force
-  Write-Host "Готово."
+  if (Test-Path $old) { Remove-Item $old -Recurse -Force -ErrorAction SilentlyContinue }
+  $swapped = $true
+  if (Test-Path $App) { try { Rename-Item $App $old -ErrorAction Stop } catch { $swapped = $false } }
+  if ($swapped) {
+    Move-Item $src.FullName $App
+    Remove-Item $old -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host "Готово."
+  } else { Write-Host "Папка приложения занята, запускаю прошлую версию." -ForegroundColor Yellow }
+  Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item $zip -Force -ErrorAction SilentlyContinue
 } catch {
+  if (-not (Test-Path (Join-Path $App "server\app.py")) -and (Test-Path (Join-Path $old "server\app.py"))) { Rename-Item $old $App }
   if (Test-Path (Join-Path $App "server\app.py")) { Write-Host "GitHub недоступен, запускаю прошлую версию." -ForegroundColor Yellow }
   else { Fail "Не удалось скачать приложение с GitHub: $($_.Exception.Message)" }
 }
@@ -133,8 +144,8 @@ if (-not (Test-Path $PwFile)) {
 
 # --- 5. сервер ----------------------------------------------------------------------
 Step "Запускаю сервер"
-$srv = Start-Process $vpy -ArgumentList "-m", "uvicorn", "app:app", "--host", "127.0.0.1", "--port", "$Port", "--workers", "1", "--proxy-headers" `
-  -WorkingDirectory (Join-Path $App "server") -WindowStyle Hidden -PassThru `
+$srv = Start-Process $vpy -ArgumentList "-m", "uvicorn", "app:app", "--host", "127.0.0.1", "--port", "$Port", "--workers", "1", "--proxy-headers", "--app-dir", "`"$(Join-Path $App 'server')`"" `
+  -WorkingDirectory $Root -WindowStyle Hidden -PassThru `
   -RedirectStandardOutput (Join-Path $Logs "server.log") -RedirectStandardError (Join-Path $Logs "server-err.log")
 Pop-Location
 Set-Content (Join-Path $Root "server.pid") $srv.Id
