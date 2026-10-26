@@ -3,7 +3,7 @@
 Одно приложение `index.html` и сервер в папке `server/`.
 
 - **Демо (GitHub Pages)**: тестовые данные в браузере. Вход dp1…dp5, dm<код магазина>, sales, region; пароль 1234.
-- **Пилот с GitHub Pages и сервером на компьютере**: на Windows запустите `pilot-windows/start-pilot.bat` (см. [pilot-windows/README.md](pilot-windows/README.md)). Он поднимает сервер и туннель tuna.am и выдаёт ссылку вида `…github.io/audit-sibir/?api=https://<поддомен>.ru.tuna.am`. Телефон запоминает адрес сервера; `?api=off` возвращает демо.
+- **Пилот с GitHub Pages и сервером на компьютере**: на Windows запустите `pilot-windows/start-pilot.bat` (см. [pilot-windows/README.md](pilot-windows/README.md)). Он поднимает сервер и туннель tuna.am и выдаёт ссылку вида `…github.io/audit-sibir/?api=https://<адрес tuna>`. Телефон запоминает адрес сервера; `?api=off` возвращает демо.
 - **Пилот на сервере**: если рядом с приложением отвечает `api/health`, оно работает с общими данными. Вход по паролям от администратора, открыты только магазины пилота. Запуск описан в [server/README-DEPLOY.md](server/README-DEPLOY.md).
 
 v0.6.0 — приложение на GitHub Pages работает с сервером пилота по ссылке `?api=`; запуск сервера с туннелем на Windows одним файлом; CORS для GitHub Pages.

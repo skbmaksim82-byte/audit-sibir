@@ -18,7 +18,7 @@ $Data    = Join-Path $Root "data"
 $Bin     = Join-Path $Root "bin"
 $Venv    = Join-Path $Root "venv"
 $Logs    = Join-Path $Root "logs"
-$SubFile = Join-Path $Root "tuna-subdomain.txt"
+$SubFile = Join-Path $Root "tuna-domain.txt"
 $PwFile  = Join-Path $Data "ПАРОЛИ-не-пересылать.txt"
 
 function Step($t) { Write-Host ""; Write-Host "== $t" -ForegroundColor Cyan }
@@ -101,15 +101,15 @@ if (-not (Test-Path $SubFile)) {
   Write-Host ""
   Write-Host "Первый запуск. Нужен бесплатный аккаунт tuna.am:" -ForegroundColor Yellow
   Write-Host "  1) Зарегистрируйтесь на https://tuna.am и откройте личный кабинет."
-  Write-Host "  2) В разделе «Поддомены» закрепите бесплатный поддомен, например audit-sibir."
-  Write-Host "  3) Скопируйте токен из кабинета."
+  Write-Host "  2) Токен — на главной странице кабинета (строка tuna config save-token …), или в разделе «Токен»."
+  Write-Host "  3) Постоянный адрес — в разделе «Домены», например snowy-orca-6775.a.tuna.free"
   Write-Host ""
   $tok = Read-Host "Вставьте токен tuna (правой кнопкой мыши) и нажмите Enter"
   if (-not $tok.Trim()) { Fail "Токен пустой." }
   & $tuna config save-token $tok.Trim() | Out-Null
   if ($LASTEXITCODE -ne 0) { Fail "tuna не приняла токен. Проверьте и запустите снова." }
-  $sub = (Read-Host "Введите закреплённый поддомен (только имя, например audit-sibir)").Trim().ToLower()
-  if ($sub -notmatch '^[a-z0-9-]{3,40}$') { Fail "Поддомен — латиница, цифры и дефис." }
+  $sub = (Read-Host "Вставьте домен из раздела «Домены» (например snowy-orca-6775.a.tuna.free)").Trim().ToLower() -replace '^https?://', '' -replace '/.*$', ''
+  if ($sub -notmatch '^[a-z0-9][a-z0-9.-]{2,80}$') { Fail "Домен — латиница, цифры, точки и дефис." }
   Set-Content $SubFile $sub -Encoding ASCII
 }
 $sub = (Get-Content $SubFile -Raw).Trim()
@@ -148,19 +148,32 @@ Write-Host "Сервер работает, версия $($h.version), мага�
 
 # --- 6. туннель ---------------------------------------------------------------------
 Step "Открываю туннель $sub"
-$tlog = Join-Path $Logs "tuna.log"
-$tun = Start-Process $tuna -ArgumentList "http", "$Port", "--subdomain=$sub" -WindowStyle Hidden -PassThru `
-  -RedirectStandardOutput $tlog -RedirectStandardError (Join-Path $Logs "tuna-err.log")
-Set-Content (Join-Path $Root "tuna.pid") $tun.Id
-$url = $null
-for ($i = 0; $i -lt 40 -and -not $url; $i++) {
-  Start-Sleep -Milliseconds 750
-  $txt = (Get-Content $tlog, (Join-Path $Logs "tuna-err.log") -Raw -ErrorAction SilentlyContinue) -join "`n"
-  $m = [regex]::Match($txt, "https://$([regex]::Escape($sub))\.[a-z0-9.-]*tuna\.am")   # наш поддомен, а не ссылки на сайт tuna
-  if ($m.Success) { $url = $m.Value }
-  if ($tun.HasExited) { break }
+$tlog = Join-Path $Logs "tuna.log"; $telog = Join-Path $Logs "tuna-err.log"
+$label = $sub.Split(".")[0]
+# Флаг закреплённого адреса у tuna: -d для полного домена, -s для поддомена. Пробуем по очереди.
+$variants = @(@("-d", $sub), @("-s", $label), @("-s", $sub))
+function Start-Tuna($v) {
+  Start-Process $tuna -ArgumentList (@("http", "$Port") + $v) -WindowStyle Hidden -PassThru -RedirectStandardOutput $tlog -RedirectStandardError $telog
 }
-if (-not $url) { Fail "Туннель не поднялся. Смотрите $Logs\tuna-err.log (часто — неверный токен или поддомен не закреплён)." }
+function Test-Public($u) { try { $r = Invoke-RestMethod "$u/api/health" -TimeoutSec 5; return $r.app -eq "audit-sibir" } catch { return $false } }
+$url = $null; $tunArgs = $null
+foreach ($v in $variants) {
+  $tun = Start-Tuna $v
+  Set-Content (Join-Path $Root "tuna.pid") $tun.Id
+  for ($i = 0; $i -lt 30 -and -not $url; $i++) {
+    Start-Sleep -Seconds 1
+    $txt = (Get-Content $tlog, $telog -Raw -ErrorAction SilentlyContinue) -join "`n"
+    $m = [regex]::Match($txt, "https://$([regex]::Escape($label))[a-z0-9.-]*")   # наш адрес, а не ссылки на сайт tuna
+    if ($m.Success -and (Test-Public $m.Value)) { $url = $m.Value }
+    elseif ($i -ge 4 -and $i % 3 -eq 0 -and (Test-Public "https://$sub")) { $url = "https://$sub" }
+    if ($tun.HasExited) { break }
+  }
+  if ($url) { $tunArgs = $v; break }
+  try { Stop-Process -Id $tun.Id -Force -ErrorAction SilentlyContinue } catch {}
+  Write-Host "Вариант «tuna http $Port $($v -join ' ')» не сработал, пробую следующий…" -ForegroundColor Yellow
+}
+if (-not $url) { Fail "Туннель не поднялся. Смотрите $telog и $tlog (часто — неверный токен или домен)." }
+Write-Host "Туннель: $url"
 
 $link = "$Pages`?api=$url"
 Set-Clipboard $link
@@ -182,8 +195,7 @@ while ($true) {
   if ($srv.HasExited) { Write-Host "$(Get-Date -f HH:mm) сервер остановился, смотрите $Logs\server-err.log" -ForegroundColor Red; break }
   if ($tun.HasExited) {
     Write-Host "$(Get-Date -f HH:mm) туннель упал, перезапускаю…" -ForegroundColor Yellow
-    $tun = Start-Process $tuna -ArgumentList "http", "$Port", "--subdomain=$sub" -WindowStyle Hidden -PassThru `
-      -RedirectStandardOutput $tlog -RedirectStandardError (Join-Path $Logs "tuna-err.log")
+    $tun = Start-Tuna $tunArgs
     Set-Content (Join-Path $Root "tuna.pid") $tun.Id
   }
 }
