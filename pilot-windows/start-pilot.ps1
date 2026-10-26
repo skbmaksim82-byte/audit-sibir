@@ -57,14 +57,22 @@ try {
   if ($swapped) {
     Move-Item $src.FullName $App
     Remove-Item $old -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Host "Готово."
-  } else { Write-Host "Папка приложения занята, запускаю прошлую версию." -ForegroundColor Yellow }
+  } else {
+    # папку держит другая программа (Проводник, антивирус) — кладём свежие файлы поверх
+    New-Item -ItemType Directory -Force -Path $App | Out-Null
+    Copy-Item (Join-Path $src.FullName "*") $App -Recurse -Force
+  }
+  Write-Host "Готово."
   Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item $zip -Force -ErrorAction SilentlyContinue
 } catch {
   if (-not (Test-Path (Join-Path $App "server\app.py")) -and (Test-Path (Join-Path $old "server\app.py"))) { Rename-Item $old $App }
   if (Test-Path (Join-Path $App "server\app.py")) { Write-Host "GitHub недоступен, запускаю прошлую версию." -ForegroundColor Yellow }
   else { Fail "Не удалось скачать приложение с GitHub: $($_.Exception.Message)" }
 }
+
+$need = @("index.html", "server\app.py", "server\manage.py", "server\region.json")
+$miss = $need | Where-Object { -not (Test-Path (Join-Path $App $_)) }
+if ($miss) { Fail "В папке $App не хватает файлов: $($miss -join ', '). Закройте окна Проводника с этой папкой, удалите её и запустите снова." }
 
 # --- 2. Python ---------------------------------------------------------------------
 Step "Проверяю Python"
@@ -93,7 +101,7 @@ if (-not (Test-Path (Join-Path $Venv "Scripts\python.exe"))) {
   Invoke-Expression "& $py -m venv `"$Venv`""
 }
 $vpy = Join-Path $Venv "Scripts\python.exe"
-& $vpy -m pip install -q --disable-pip-version-check -r (Join-Path $App "server\requirements.txt")
+& $vpy -m pip install -q --disable-pip-version-check "fastapi>=0.110" "uvicorn>=0.29"
 if ($LASTEXITCODE -ne 0) { Fail "Не установились пакеты FastAPI. Проверьте интернет и запустите снова." }
 
 # --- 3. tuna (туннель в интернет, серверы в России) ---------------------------------
