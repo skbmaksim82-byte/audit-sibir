@@ -26,7 +26,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 
-VERSION = "0.6.1"
+VERSION = "0.7.0"
 HERE = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("AUDIT_DB", HERE / "data" / "audit.db"))
 PHOTO_DIR = Path(os.environ.get("AUDIT_PHOTOS", HERE / "data" / "photos"))
@@ -234,8 +234,17 @@ def _check_write(user: dict, kind: str, doc_id: str, data: dict, old: dict | Non
     if data.get("id") != doc_id:
         raise HTTPException(400, "id документа не совпадает")
     if kind == "visits":
+        if role in ("sales", "region") and old is not None:
+            # ДПР и ДР могут только подтвердить устройство визита — остальное в визите не меняется
+            strip = lambda d: {k: v for k, v in d.items() if k != "deviceOk"}
+            ok = data.get("deviceOk") or {}
+            if strip(data) != strip(old) or ok.get("by") != lg:
+                raise HTTPException(403, "Руководитель может только подтвердить устройство визита")
+            return
         if role != "dp":
             raise HTTPException(403, "Визит ведёт ДП")
+        if data.get("deviceOk") != (old or {}).get("deviceOk"):
+            raise HTTPException(403, "Устройство подтверждает руководитель")
     elif kind == "tasks":
         if role not in ("dp", "dm"):
             raise HTTPException(403, "Задачи меняют ДП и ДМ")

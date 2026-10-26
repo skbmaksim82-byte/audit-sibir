@@ -188,6 +188,14 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 textarea.input { min-height: 84px; resize: vertical; line-height: 1.4; }
 .input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 25%, transparent); }
 .hint { font-size: 12.5px; color: var(--ink-3); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.duerow { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 8px; }
+.duerow .input { font-variant-numeric: tabular-nums; -webkit-appearance: none; appearance: none; min-width: 0; }
+.dev { display: flex; flex-direction: column; gap: 10px; }
+.dev .dev-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dev .dev-h h2 { margin: 0; }
+.dev .dev-model { font-family: var(--font-fig); font-weight: 600; font-size: 18px; font-variant-numeric: tabular-nums; }
+.devtag { font-family: var(--font-fig); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .err { font-size: 13px; color: var(--bad); font-weight: 550; }
 
 /* ---------- visit runner ---------- */
@@ -616,7 +624,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   "use strict";
   const D = window.AUDIT_DATA;
   const TPL = D.template;
-  const APP_VERSION = "0.6.1";
+  const APP_VERSION = "0.7.0";
   const STORE_KEY = "audit.sib.v1";
   const PASSWORD = "1234";
   const DUE_DAYS = { 1: 3, 2: 7, 3: 14 };
@@ -641,6 +649,34 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   const $ = (sel, root = document) => root.querySelector(sel);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  /* Устройство, с которого идёт работа. Веб-приложение не видит номер телефона и IMEI:
+     берём модель и систему из браузера и постоянный код, который телефон получает при первом запуске. */
+  let DEVICE = null;
+  function deviceId() {
+    try { let id = localStorage.getItem("audit.device"); if (!id) { id = "d" + Date.now().toString(36).slice(-4) + Math.random().toString(36).slice(2, 6); localStorage.setItem("audit.device", id); } return id; }
+    catch (e) { return ""; }
+  }
+  async function readDevice() {
+    const ua = navigator.userAgent || "", d = { id: deviceId(), model: "", os: "", browser: "", mobile: /Mobi|Android|iPhone|iPad/i.test(ua), ua: ua.slice(0, 300) };
+    try {
+      const ch = navigator.userAgentData;
+      if (ch && ch.getHighEntropyValues) {
+        const h = await ch.getHighEntropyValues(["model", "platformVersion", "fullVersionList"]);
+        d.model = (h.model || "").trim(); d.mobile = !!ch.mobile;
+        if (ch.platform) d.os = ch.platform + (h.platformVersion && ch.platform !== "Windows" ? " " + h.platformVersion.split(".")[0] : "");
+        const b = (h.fullVersionList || ch.brands || []).find((x) => !/Not.?A.?Brand|^Chromium$/i.test(x.brand));
+        if (b) d.browser = `${b.brand.replace("Google ", "")} ${String(b.version).split(".")[0]}`;
+      }
+    } catch (e) { /* браузер не отдал подробности — берём из строки агента */ }
+    const m = (re) => (ua.match(re) || [])[1];
+    if (!d.os) d.os = m(/iPhone OS (\d+)/) ? "iOS " + m(/iPhone OS (\d+)/) : m(/CPU OS (\d+)/) ? "iPadOS " + m(/CPU OS (\d+)/) : m(/Android (\d+)/) ? "Android " + m(/Android (\d+)/) : /Windows/.test(ua) ? "Windows" : /Mac OS X/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "";
+    if (!d.model) { const am = m(/Android [^;)]*; ([^;)]+?)(?: Build[^;)]*)?\)/); d.model = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : am && am !== "K" ? am.trim() : ""; }
+    if (!d.browser) d.browser = m(/YaBrowser\/(\d+)/) ? "Яндекс Браузер " + m(/YaBrowser\/(\d+)/) : m(/SamsungBrowser\/(\d+)/) ? "Samsung Internet " + m(/SamsungBrowser\/(\d+)/) : m(/Edg\w*\/(\d+)/) ? "Edge " + m(/Edg\w*\/(\d+)/) : m(/(?:Firefox|FxiOS)\/(\d+)/) ? "Firefox " + m(/(?:Firefox|FxiOS)\/(\d+)/) : m(/(?:Chrome|CriOS)\/(\d+)/) ? "Chrome " + m(/(?:Chrome|CriOS)\/(\d+)/) : m(/Version\/(\d+).*Safari/) ? "Safari " + m(/Version\/(\d+).*Safari/) : "";
+    return d;
+  }
+  const devName = (d) => (d.model || (d.mobile ? "Телефон, модель скрыта" : "Компьютер"));
+  const devTag = (d) => (d.id ? "№ " + d.id.slice(-4).toUpperCase() : "без кода");
   const DAY = 864e5;
   const today0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
   const ymd = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
@@ -651,6 +687,14 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   const dTime = (d) => { const x = new Date(d); return `${dShort(x)}, ${String(x.getHours()).padStart(2, "0")}:${String(x.getMinutes()).padStart(2, "0")}`; };
   const plural = (n, one, few, many) => { const a = Math.abs(n) % 100, b = a % 10; if (a > 10 && a < 20) return many; if (b > 1 && b < 5) return few; if (b === 1) return one; return many; };
   const daysBetween = (a, b) => Math.round((parseYmd(ymd(b)) - parseYmd(ymd(a))) / DAY);
+  // Срок исправления: дата + время. Без времени (старые и тестовые задачи) срок — конец дня.
+  const DUE_TIME = "18:00";
+  const dueAt = (t) => { const d = parseYmd(t.due), [h, m] = (t.dueTime || "23:59").split(":").map(Number); d.setHours(h, m, 0, 0); return d; };
+  const dueLabel = (t) => (t.due ? `${dShort(parseYmd(t.due))}${t.dueTime ? `, ${t.dueTime}` : ""}` : "—");
+  const dueFields = (key, due, time, attr = "") => `<div class="field"><span class="lbl">Срок исправления</span><div class="duerow">
+      <label class="sr-only" for="d-${key}">Дата</label><input class="input" type="date" id="d-${key}" ${attr}data-due="${key}" value="${due}" min="${ymd(today0())}" required>
+      <label class="sr-only" for="dt-${key}">Время</label><input class="input" type="time" id="dt-${key}" ${attr}data-duetime="${key}" value="${time || ""}" step="900"></div>
+      <span class="hint">До какой даты и времени ДМ должен исправить. Без времени — до конца дня.</span></div>`;
   const sameMonth = (d) => { const x = new Date(d), t = new Date(); return x.getFullYear() === t.getFullYear() && x.getMonth() === t.getMonth(); };
   const MONTHS_LOC = ["январе", "феврале", "марте", "апреле", "мае", "июне", "июле", "августе", "сентябре", "октябре", "ноябре", "декабре"];
   const monthName = () => MONTHS_NOM[new Date().getMonth()];
@@ -974,6 +1018,13 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   }
 
   /* ------------------------------------------------------------ seed (тестовые данные) */
+  const SEED_DEV = [ // тестовые телефоны ДП 1…5
+    { id: "dsd1a7k", model: "SM-A546E", os: "Android 14", browser: "Chrome 141", mobile: true },
+    { id: "dsd2q4m", model: "iPhone", os: "iOS 18", browser: "Safari 18", mobile: true },
+    { id: "dsd3x9p", model: "Redmi Note 12 Pro", os: "Android 13", browser: "Яндекс Браузер 25", mobile: true },
+    { id: "dsd4c2r", model: "CPH2591", os: "Android 14", browser: "Chrome 141", mobile: true },
+    { id: "dsd5t8w", model: "Pixel 7", os: "Android 15", browser: "Chrome 141", mobile: true },
+  ];
   function seed() {
     const st = { ver: 1, seeded: true, session: null, visits: [], tasks: [], drafts: {}, reports: [] };
     const t0 = today0();
@@ -988,6 +1039,9 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         const v = { id: "v" + store.id + "-" + idx, store: store.id, dp: DP_BY_DIV[store.div].login, tpl: TPL.id, status: "signed", seed: true,
           startedAt: start.toISOString(), endedAt: new Date(start.getTime() + (78 + Math.floor(r() * 30)) * 60e3).toISOString(),
           params, answers: {}, summary: { notes: "", recheck: false }, sign: { dmName: "" } };
+        const di = D.dps.findIndex((d) => d.div === store.div);
+        v.device = { ...(idx === 1 && r() < 0.08 ? SEED_DEV[(di + 2) % SEED_DEV.length] : SEED_DEV[di % SEED_DEV.length]) };
+        if (idx === 1 && v.device.id !== SEED_DEV[di % SEED_DEV.length].id) v.device.id = v.device.id + "-alt" + di; // тест: у ДП появился второй телефон
         for (const it of ALL_ITEMS) {
           if (!applies(it, params)) continue;
           const x = r();
@@ -1048,6 +1102,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   // Блоки фотоотчёта = разделы чек-листа 1–12 (13-й раздел — сам фотоотчёт). Минимум кадров и подсказка — по блоку.
   const RB = TPL.sections.filter((s) => s.title !== "Фотоотчёт").map((s) => ({ n: s.n, title: s.title, basis: s.basis }));
   const RB_BY = Object.fromEntries(RB.map((b) => [b.n, b]));
+  const rbTaskId = (rp, n) => `tr-${rp.id}-${n}`; // одна задача на блок за неделю: повторный возврат обновляет её
   const RB_RULE = {
     1: [3, "Витрина целиком снаружи, затем женский, мужской и детский блоки"],
     2: [2, "Вход и зонирование от двери, потолочные флаги"],
@@ -1099,7 +1154,10 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   const draftOf = (storeId) => S().visits.find((v) => v.store === storeId && v.status === "draft") || null;
   const tasksOf = (storeId) => S().tasks.filter((t) => t.store === storeId);
   const isActive = (t) => t.status !== "accepted";
-  const overdueDays = (t) => (isActive(t) && t.status !== "review" ? daysBetween(parseYmd(t.due), today0()) : 0);
+  const overdueDays = (t) => (isActive(t) && t.status !== "review" && new Date() > dueAt(t) ? Math.max(1, daysBetween(parseYmd(t.due), today0())) : 0);
+  // задача из визита ссылается на пункт чек-листа, из фотоотчёта — на блок
+  const tCode = (t) => (t.item ? t.item : `Ф${t.block}`);
+  const tWhere = (t) => (t.item ? ITEM[t.item].secTitle : `Фотоотчёт · ${(RB_BY[t.block] || {}).title || "блок " + t.block}`);
   const escLevel = (t) => { const d = overdueDays(t); return d > 0 ? ESC.find((e) => d >= e.days) : null; };
   const storesOfDp = (u) => D.stores.filter((x) => x.div === u.div);
   const reportOf = (storeId, w = weekStart()) => S().reports.find((r) => r.store === storeId && r.week === w) || null;
@@ -1191,7 +1249,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
           const a = v.answers[it.id] || {}, m = MARKS[a.v] || ["", "—"];
           return `<div class="cl-i ${a.v === "fail" ? "is-fail" : ""}" id="cl-${it.id.replace(".", "-")}">
             <div class="cl-q"><span class="code">${it.id}</span><p>${esc(it.text)}${it.count && a.count ? ` <span class="sub">· проверено ${a.count} арт.</span>` : ""}</p><span class="pill ${m[0]}">${m[1]}</span></div>
-            ${a.v === "fail" ? `<div class="cl-f"><p><b>ДП:</b> ${esc(a.comment || "без описания")}</p><span class="sub">${a.prio ? PRIO[a.prio].short : ""}${a.due ? ` · срок ${dShort(parseYmd(a.due))}` : ""}</span>
+            ${a.v === "fail" ? `<div class="cl-f"><p><b>ДП:</b> ${esc(a.comment || "без описания")}</p><span class="sub">${a.prio ? PRIO[a.prio].short : ""}${a.due ? ` · срок ${dueLabel(a)}` : ""}</span>
               ${(a.photos || []).length ? `<div class="photos">${a.photos.map((p) => `<div class="ph"><button class="open" data-zoom="${p}" aria-label="Открыть фото"><img data-photo="${p}" alt="Фото к пункту ${it.id}"></button></div>`).join("")}</div>` : ""}</div>` : ""}
             ${thread(`vi:${v.id}:${it.id}`, v.store, `Пункт ${it.id} · визит ${dShort(v.startedAt)}`)}
           </div>`;
@@ -1424,9 +1482,9 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   function taskRow(t) {
     const od = overdueDays(t), st = STATUS[t.status];
     return `<button class="row" data-task="${t.id}">
-      <span class="main"><span class="t1"><span class="code" style="font-size:14px;color:var(--ink-3)">${t.item}</span><span class="name">${esc(t.comment || t.text)}</span></span>
-      <span class="t2">${esc(STORES[t.store].id)} · ${esc(ITEM[t.item].secTitle)}</span></span>
-      <span class="end"><span class="pill p${t.prio}">${PRIO[t.prio].short}</span>${od > 0 ? `<span class="pill bad">+${od} ${plural(od, "день", "дня", "дней")}</span>` : `<span class="pill ${st.cls}">${t.status === "accepted" ? st.label : t.status === "review" ? st.label : `до ${dShort(parseYmd(t.due))}`}</span>`}</span>
+      <span class="main"><span class="t1"><span class="code" style="font-size:14px;color:var(--ink-3)">${tCode(t)}</span><span class="name">${esc(t.comment || t.text)}</span></span>
+      <span class="t2">${esc(STORES[t.store].id)} · ${esc(tWhere(t))}</span></span>
+      <span class="end"><span class="pill p${t.prio}">${PRIO[t.prio].short}</span>${od > 0 ? `<span class="pill bad">+${od} ${plural(od, "день", "дня", "дней")}</span>` : `<span class="pill ${st.cls}">${t.status === "accepted" ? st.label : t.status === "review" ? st.label : `до ${dueLabel(t)}`}</span>`}</span>
     </button>`;
   }
 
@@ -1445,7 +1503,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         const c = e.target.closest(".chip");
         if (c) { p[c.dataset.k] = c.dataset.k === "cash2" ? c.dataset.v === "true" : c.dataset.v; sh.querySelectorAll(`.chip[data-k="${c.dataset.k}"]`).forEach((b) => b.setAttribute("aria-pressed", String(b === c))); }
         if (e.target.closest("[data-go]")) {
-          const v = { id: uid("v"), store: storeId, dp: me().login, tpl: TPL.id, status: "draft", startedAt: new Date().toISOString(), params: p, answers: {}, summary: { notes: "", recheck: false }, sign: {}, sec: 1 };
+          const v = { id: uid("v"), store: storeId, dp: me().login, tpl: TPL.id, status: "draft", startedAt: new Date().toISOString(), params: p, answers: {}, summary: { notes: "", recheck: false }, sign: {}, sec: 1, device: DEVICE };
           S().visits.push(v); Store.save(); close(); go("visit", { id: v.id });
         }
       });
@@ -1496,7 +1554,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
           </div></div>
         <div class="field"><label for="c-${it.id}">Что не так</label><textarea class="input" id="c-${it.id}" data-comment="${it.id}" placeholder="Например: ботильоны стоят в блоке кед" rows="2">${esc(a.comment || "")}</textarea></div>
         <div class="field"><span class="lbl">Приоритет для ДМ</span><div class="prio">${[1, 2, 3].map((p) => `<button data-prio="${p}" data-item="${it.id}" aria-pressed="${(a.prio || 2) === p}"><b>${PRIO[p].short}</b><span>${PRIO[p].hint}</span></button>`).join("")}</div></div>
-        <div class="field"><label for="d-${it.id}">Срок исправления</label><input class="input" type="date" id="d-${it.id}" data-due="${it.id}" value="${due}" min="${ymd(today0())}"></div>
+        ${dueFields(it.id, due, a.dueTime === undefined ? DUE_TIME : a.dueTime)}
       </div>`;
     }
     const count = it.count ? `<div class="field"><label for="n-${it.id}">Проверено артикулов по сканеру</label><div class="stepper"><button class="btn" data-cnt="-1" data-item="${it.id}" aria-label="Меньше">${icon("minus")}</button><input class="input" id="n-${it.id}" inputmode="numeric" data-count="${it.id}" value="${a.count ?? 0}"><button class="btn" data-cnt="1" data-item="${it.id}" aria-label="Больше">+</button></div><span class="hint" id="nh-${it.id}">${(a.count || 0) < 30 ? `Нужно минимум 30, осталось ${30 - (a.count || 0)}` : "Минимум выполнен"}</span></div>` : "";
@@ -1545,7 +1603,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         const id = markB.dataset.item, val = markB.dataset.mark;
         const a = v.answers[id] || (v.answers[id] = {});
         a.v = a.v === val ? null : val;
-        if (a.v === "fail") { a.prio = a.prio || (ITEM[id].crit ? 1 : 2); a.photos = a.photos || []; a.due = a.due || ymd(new Date(today0().getTime() + DUE_DAYS[a.prio] * DAY)); }
+        if (a.v === "fail") { a.prio = a.prio || (ITEM[id].crit ? 1 : 2); a.photos = a.photos || []; a.due = a.due || ymd(new Date(today0().getTime() + DUE_DAYS[a.prio] * DAY)); if (a.dueTime === undefined) a.dueTime = DUE_TIME; }
         save();
         const n = rerenderItem(id); refreshHead();
         if (a.v === "fail") { const inp = n.querySelector(".addph"); inp && inp.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }
@@ -1570,7 +1628,8 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const n = e.target.dataset.count; if (n) { const a = v.answers[n] || (v.answers[n] = {}); a.count = Math.max(0, parseInt(e.target.value.replace(/\D/g, ""), 10) || 0); root.querySelector(`[id="nh-${n}"]`).textContent = a.count < 30 ? `Нужно минимум 30, осталось ${30 - a.count}` : "Минимум выполнен"; save(); }
     });
     root.addEventListener("change", async (e) => {
-      const d = e.target.dataset.due; if (d) { v.answers[d].due = e.target.value; save(); return; }
+      const d = e.target.dataset.due; if (d) { if (e.target.value) v.answers[d].due = e.target.value; else e.target.value = v.answers[d].due; save(); return; }
+      const dt = e.target.dataset.duetime; if (dt) { v.answers[dt].dueTime = e.target.value || ""; save(); return; }
       const pf = e.target.dataset.photoFor;
       if (pf && e.target.files && e.target.files[0]) {
         const file = e.target.files[0];
@@ -1612,7 +1671,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       <section><div class="group-h"><h2>По разделам</h2><span>${TPL.sections.length}</span></div>
         <div class="list">${TPL.sections.map((s) => { const st = secStat(v, s); return `<div class="secrow"><span class="n">${s.n}</span><span>${esc(s.title)}${st.fail ? ` <span class="bad">· ${st.fail} ${plural(st.fail, "замечание", "замечания", "замечаний")}</span>` : ""}</span>${fig(st.score, { dec: 0, unit: "%", cls: st.score === null ? "na" : scoreCls(st.score, false) })}</div>`; }).join("")}</div></section>
       ${fails.length ? `<section><div class="group-h"><h2>Замечания станут задачами ДМ</h2><span>${fails.length}</span></div>
-        <div class="list">${fails.map(([iid, a]) => `<div class="row" style="cursor:default"><span class="main"><span class="t1"><span class="code" style="font-size:14px;color:var(--ink-3)">${iid}</span><span class="name">${esc(a.comment || ITEM[iid].text)}</span></span><span class="t2">срок ${a.due ? dShort(parseYmd(a.due)) : "—"} · ${(a.photos || []).length} фото</span></span><span class="end"><span class="pill p${a.prio}">${PRIO[a.prio].short}</span></span></div>`).join("")}</div></section>` : ""}
+        <div class="list">${fails.map(([iid, a]) => `<div class="row" style="cursor:default"><span class="main"><span class="t1"><span class="code" style="font-size:14px;color:var(--ink-3)">${iid}</span><span class="name">${esc(a.comment || ITEM[iid].text)}</span></span><span class="t2">срок ${dueLabel(a)} · ${(a.photos || []).length} фото</span></span><span class="end"><span class="pill p${a.prio}">${PRIO[a.prio].short}</span></span></div>`).join("")}</div></section>` : ""}
       <div class="panel">
         <div class="field"><label for="notes">Главные замечания</label><textarea class="input" id="notes" placeholder="Что важно передать ДМ и руководителю">${esc(v.summary.notes)}</textarea></div>
         <label class="switch"><span>Повторная проверка в следующий визит</span><input type="checkbox" id="recheck" ${v.summary.recheck || sc.crit ? "checked" : ""}></label>
@@ -1665,12 +1724,13 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const sigDp = uid("s"), sigDm = uid("s"); await Photos.put(sigDp, sd, v.store); await Photos.put(sigDm, sm, v.store);
       const sc = computeScore(v);
       Object.assign(v, { status: "signed", endedAt: new Date().toISOString(), score: sc.score, crit: sc.crit, fails: sc.fail });
+      if (DEVICE && (!v.device || v.device.id !== DEVICE.id)) { if (!v.device) v.device = DEVICE; else v.signDevice = DEVICE; }
       v.sign = { dp: sigDp, dm: sigDm, dmName: name };
       if (sc.crit) v.summary.recheck = true;
       for (const [iid, a] of Object.entries(v.answers)) {
         if (a.v !== "fail") continue;
         const it = ITEM[iid];
-        S().tasks.push({ id: uid("t"), visit: v.id, store: v.store, item: iid, sec: it.sec, text: it.text, comment: a.comment, photos: a.photos, prio: a.prio, due: a.due, status: "open", createdAt: v.endedAt, fix: null, history: [{ at: v.endedAt, by: v.dp, act: "created" }] });
+        S().tasks.push({ id: uid("t"), visit: v.id, store: v.store, item: iid, sec: it.sec, text: it.text, comment: a.comment, photos: a.photos, prio: a.prio, due: a.due, dueTime: a.dueTime || "", status: "open", createdAt: v.endedAt, fix: null, history: [{ at: v.endedAt, by: v.dp, act: "created" }] });
       }
       Store.save();
       stack.length = 0; route = { name: "home", p: {} };
@@ -1693,6 +1753,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         <div class="counts"><div>${fig(v.fails, { cls: v.fails ? "bad" : "" })}<small>замечаний</small></div><div>${fig(ts.filter((t) => t.status === "accepted").length, { cls: "ok" })}<small>исправлено</small></div><div>${fig(Math.round((new Date(v.endedAt) - new Date(v.startedAt)) / 60000))}<small>минут</small></div></div>
         <p>${dTime(v.startedAt)} — ${dTime(v.endedAt).split(", ")[1]} · ДП ${esc(userBy(v.dp).name)}${v.sign.dmName ? ` · ДМ ${esc(v.sign.dmName)}` : ""}${v.summary.recheck ? " · повторная проверка" : ""}${v.crit ? " · есть нарушение критичного пункта" : ""}</p>
       </div>
+      ${["sales", "region"].includes(u.role) ? devPanel(v) : ""}
       ${reviewPanel(v)}
       <section class="panel"><h2>Итог ДП</h2>${v.summary.notes ? `<p style="white-space:pre-wrap">${esc(v.summary.notes)}</p>` : `<p class="sub">Главные замечания ДП не написал.</p>`}
         ${thread(`v:${v.id}`, v.store, `Визит ${dShort(v.startedAt)} · ${x.id}`)}</section>
@@ -1709,48 +1770,56 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   screens.task = ({ id }) => {
     const t = S().tasks.find((x) => x.id === id); const x = STORES[t.store]; const u = me();
     const od = overdueDays(t), esc1 = escLevel(t), st = STATUS[t.status];
+    const fromReport = !!t.block, rpCur = fromReport && t.week === weekStart();
     const canFix = u.role === "dm" && (t.status === "open" || t.status === "returned");
     const canReview = u.role === "dp" && t.status === "review";
+    const fixInReport = canFix && rpCur, reviewInReport = canReview && fromReport;
     const draft = (screens.task.draft = screens.task.draft && screens.task.draft.id === id ? screens.task.draft : { id, photos: [], comment: "" });
     const photoFrame = (pid, label) => pid ? `<div class="frame"><button data-zoom="${pid}" aria-label="Открыть фото: ${label}"><img data-photo="${pid}" alt="${label}"></button></div>` : `<div class="frame"><span>${t.seed ? "Тестовые данные:<br>фото нет" : "Фото нет"}</span></div>`;
-    const actLabel = { created: "Замечание создано на визите", fixed: "ДМ отметил исправление", accepted: "ДП принял исправление", returned: "ДП вернул на доработку" };
+    const actLabel = { created: fromReport ? "Замечание по фотоотчёту" : "Замечание создано на визите", fixed: "ДМ отметил исправление", accepted: "ДП принял исправление", returned: "ДП вернул на доработку" };
     const body = `
       <button class="back" data-back>${icon("left", "sm")}Назад</button>
-      <div class="titlerow"><div><h1>${esc(t.comment || t.text)}</h1><p><span class="code">${x.id}</span> ${esc(x.place)} · пункт ${t.item}, ${esc(ITEM[t.item].secTitle)}</p></div></div>
+      <div class="titlerow"><div><h1>${esc(t.comment || t.text)}</h1><p><span class="code">${x.id}</span> ${esc(x.place)} · ${fromReport ? esc(tWhere(t)) + ", неделя " + weekLabel(t.week) : `пункт ${t.item}, ${esc(ITEM[t.item].secTitle)}`}</p></div></div>
       <div class="panel">
         <dl class="kv">
           <dt>Статус</dt><dd><span class="pill ${od > 0 ? "bad" : st.cls}">${od > 0 && t.status !== "review" ? "Просрочена" : st.label}</span></dd>
           <dt>Приоритет</dt><dd><span class="pill p${t.prio}">${PRIO[t.prio].name}</span></dd>
-          <dt>Срок</dt><dd>${dShort(parseYmd(t.due))}${od > 0 ? ` <span style="color:var(--bad)">· просрочено на ${od} ${plural(od, "день", "дня", "дней")}</span>` : ""}</dd>
+          <dt>Срок</dt><dd>${dueLabel(t)}${od > 0 ? ` <span style="color:var(--bad)">· просрочено на ${od} ${plural(od, "день", "дня", "дней")}</span>` : ""}</dd>
           ${esc1 ? `<dt>Эскалация</dt><dd style="color:var(--bad)">${esc1.label}</dd>` : ""}
         </dl>
-        <p class="sub" style="font-size:14px">Пункт чек-листа: ${esc(t.text)}</p>
+        <p class="sub" style="font-size:14px">${fromReport ? "Фотоотчёт" : "Пункт чек-листа"}: ${esc(t.text)}</p>
       </div>
       <div class="ba">
         <figure><figcaption>Было</figcaption>${photoFrame(t.photos[0], "Фото нарушения")}</figure>
         <figure><figcaption>Стало</figcaption>${t.fix && t.fix.photos[0] ? photoFrame(t.fix.photos[0], "Фото исправления") : draft.photos[0] ? photoFrame(draft.photos[0], "Новое фото исправления") : `<div class="frame"><span>${canFix ? "Снимите тот же блок<br>после исправления" : t.fix ? (t.seed ? "Тестовые данные:<br>фото нет" : "Фото нет") : "Ещё не исправлено"}</span></div>`}</figure>
       </div>
       ${t.photos.length > 1 ? `<div class="photos">${t.photos.slice(1).map((p) => `<div class="ph"><button class="open" data-zoom="${p}" aria-label="Открыть фото"><img data-photo="${p}" alt="Фото нарушения"></button></div>`).join("")}</div>` : ""}
-      ${canFix ? `<div class="panel"><h2>Исправление</h2>
+      ${fixInReport ? `<div class="panel"><h2>Исправление</h2><p>Исправьте замечание и переснимите блок ${t.block} в фотоотчёте недели. После отправки отчёта задача сама уйдёт ДП на проверку.</p>
+        ${t.status === "returned" ? `<p class="sub">ДП вернул: «${esc((t.history.filter((h) => h.act === "returned").slice(-1)[0] || {}).comment || t.comment || "")}»</p>` : ""}</div>` : ""}
+      ${canFix && !fixInReport ? `<div class="panel"><h2>Исправление</h2>
         <div class="photos">${draft.photos.map((p) => `<div class="ph"><button class="open" data-zoom="${p}" aria-label="Открыть фото"><img data-photo="${p}" alt="Фото исправления"></button><button class="rm" data-rmdraft="${p}" aria-label="Удалить фото">${icon("x", "sm")}</button></div>`).join("")}
           ${draft.photos.length < 5 ? `<label class="addph ${draft.photos.length ? "" : "need"}">${icon("camera")}<span>Снять «стало»</span><input type="file" accept="image/*" capture="environment" data-fixphoto aria-label="Сделать фото исправления"></label>` : ""}</div>
         <div class="field"><label for="fixc">Комментарий для ДП</label><textarea class="input" id="fixc" placeholder="Что сделано">${esc(draft.comment)}</textarea></div>
-        ${t.status === "returned" ? `<p class="sub">ДП вернул: «${esc(t.history.filter((h) => h.act === "returned").slice(-1)[0].comment || "")}»</p>` : ""}
+        ${t.status === "returned" ? `<p class="sub">ДП вернул: «${esc((t.history.filter((h) => h.act === "returned").slice(-1)[0] || {}).comment || "")}»</p>` : ""}
       </div>` : ""}
       ${t.fix && t.fix.comment ? `<div class="panel"><h2>Комментарий ДМ</h2><p>${esc(t.fix.comment)}</p></div>` : ""}
-      ${canReview ? `<div class="field"><label for="retc">Если возвращаете — что переделать</label><textarea class="input" id="retc" placeholder="Например: на фото не видно всего блока"></textarea></div><p class="err" id="retErr" hidden></p>` : ""}
-      <section class="panel"><h2>Комментарии</h2>${thread(`t:${t.id}`, t.store, `Задача ${t.item} · ${x.id}`)}</section>
+      ${reviewInReport ? `<p class="banner">${icon("clock", "sm")}<span>ДМ переснял блок ${t.block}. Примите или верните его в фотоотчёте — задача закроется вместе с блоком.</span></p>` : ""}
+      ${canReview && !reviewInReport ? `<div class="field"><label for="retc">Если возвращаете — что переделать</label><textarea class="input" id="retc" placeholder="Например: на фото не видно всего блока"></textarea></div><p class="err" id="retErr" hidden></p>` : ""}
+      <section class="panel"><h2>Комментарии</h2>${thread(`t:${t.id}`, t.store, `Задача ${tCode(t)} · ${x.id}`)}</section>
       <section><div class="group-h"><h2>История</h2></div>
         <ol class="timeline">${t.history.map((h) => `<li><div>${actLabel[h.act] || h.act}${h.comment ? `: «${esc(h.comment)}»` : ""}<br><span>${dTime(h.at)} · ${esc((userBy(h.by) || {}).short || h.by)}</span></div></li>`).join("")}</ol></section>`;
     let action = "";
-    if (canFix) action = `<span class="meta">${draft.photos.length ? `${draft.photos.length} фото` : "Нужно фото"}</span><button class="btn primary" data-act="sendfix" ${draft.photos.length ? "" : "disabled"}>${icon("send", "sm")}Отправить на проверку</button>`;
-    if (canReview) action = `<button class="btn danger" data-act="return">Вернуть</button><button class="btn good" data-act="accept">${icon("check", "sm")}Принять</button>`;
-    return { title: "Задача", sub: `${x.id} · ${PRIO[t.prio].short} · до ${dShort(parseYmd(t.due))}`, body, action };
+    if (fixInReport) action = `<button class="btn primary block" data-rblockgo="${t.block}">${icon("camera", "sm")}Переснять блок ${t.block}</button>`;
+    else if (canFix) action = `<span class="meta">${draft.photos.length ? `${draft.photos.length} фото` : "Нужно фото"}</span><button class="btn primary" data-act="sendfix" ${draft.photos.length ? "" : "disabled"}>${icon("send", "sm")}Отправить на проверку</button>`;
+    if (reviewInReport) action = `<button class="btn primary block" data-rstore="${t.store}" data-rweek="${t.week}">Открыть фотоотчёт</button>`;
+    else if (canReview) action = `<button class="btn danger" data-act="return">Вернуть</button><button class="btn good" data-act="accept">${icon("check", "sm")}Принять</button>`;
+    return { title: "Задача", sub: `${x.id} · ${PRIO[t.prio].short} · до ${dueLabel(t)}`, body, action };
   };
   function bindTask(root, t) {
     const draft = screens.task.draft;
     root.addEventListener("click", (e) => {
       const z = e.target.closest("[data-zoom]"); if (z) { lightbox(z.dataset.zoom); return; }
+      const rg = e.target.closest("[data-rblockgo]"); if (rg) { go("rblock", { n: +rg.dataset.rblockgo }); return; }
       const rm = e.target.closest("[data-rmdraft]"); if (rm) { draft.photos = draft.photos.filter((p) => p !== rm.dataset.rmdraft); Photos.del(rm.dataset.rmdraft); render(false); return; }
       const a = e.target.closest("[data-act]"); if (!a) return;
       const now = new Date().toISOString(), by = me().login;
@@ -1771,7 +1840,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const lab = e.target.closest(".addph"); lab.querySelector("span").textContent = "Сжимаю…";
       try {
         const x = STORES[t.store];
-        const url = await processPhoto(e.target.files[0], [`kari ${x.id} · ${x.city}, ${x.place}`, `${dTime(new Date())} · исправление ${t.item}`]);
+        const url = await processPhoto(e.target.files[0], [`kari ${x.id} · ${x.city}, ${x.place}`, `${dTime(new Date())} · исправление ${tCode(t)}`]);
         const pid = uid("p"); await Photos.put(pid, url, t.store); draft.photos.push(pid); render(false);
       } catch (err) { toast(err.message); lab.querySelector("span").textContent = "Снять «стало»"; }
     });
@@ -1853,7 +1922,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   function rblockRow(rp, b, attr) {
     const bl = rp.blocks[b.n], n = bl.photos.length, min = rbMin(b.n), ok = blockReady(rp, b.n), st = bl.st;
     const pill = st === "ok" ? `<span class="pill ok">принят</span>` : st === "ret" ? `<span class="pill mid">вернули</span>` : ok ? `<span class="pill ok">готов</span>` : `<span class="pill wait">${n} из ${min}</span>`;
-    const note = st === "ret" && bl.ret ? `<span class="t2" style="color:var(--mid);font-weight:600">${esc(bl.ret)}</span>` : `<span class="t2">${esc(rbHint(b.n))}</span>`;
+    const note = st === "ret" && bl.ret ? `<span class="t2" style="color:var(--mid);font-weight:600">${esc(bl.ret)}${bl.due ? ` · до ${dueLabel(bl)}` : ""}</span>` : `<span class="t2">${esc(rbHint(b.n))}</span>`;
     return `<button class="row" data-${attr}="${b.n}"><span class="main"><span class="t1"><span class="code">${b.n}</span><span class="name">${esc(b.title)}</span></span>${note}</span><span class="end">${pill}</span></button>`;
   }
   screens.rblock = ({ n }) => { // ДМ: один блок, фото
@@ -1863,7 +1932,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     const body = `
       <button class="back" data-back>${icon("left", "sm")}Фотоотчёт</button>
       <div class="titlerow"><div><h1>${b.n}. ${esc(b.title)}</h1><p>${esc(rbHint(n))}</p></div></div>
-      ${bl.st === "ret" ? `<div class="panel" style="border-color:var(--bad)"><h2>ДП вернул блок</h2><p>${esc(bl.ret || "Переснимите блок")}</p></div>` : ""}
+      ${bl.st === "ret" ? `<div class="panel" style="border-color:var(--bad)"><h2>ДП вернул блок</h2><p>${esc(bl.ret || "Переснимите блок")}</p>${bl.due ? `<p class="sub"><span class="pill p${bl.prio || 2}">${PRIO[bl.prio || 2].short}</span> Исправить до <b>${dueLabel(bl)}</b></p>` : ""}</div>` : ""}
       <div class="panel"><h2>Фото · минимум ${min}</h2>
         <div class="photos">${bl.photos.map((p) => `<div class="ph"><button class="open" data-zoom="${p}" aria-label="Открыть фото"><img data-photo="${p}" alt="Фото блока ${esc(b.title)}"></button>${editable && bl.st !== "ok" ? `<button class="rm" data-rmrb="${p}" aria-label="Удалить фото">${icon("x", "sm")}</button>` : ""}</div>`).join("")}
           ${canAdd ? `<label class="addph ${bl.photos.length < min ? "need" : ""}">${icon("camera")}<span>Снять</span><input type="file" accept="image/*" capture="environment" data-rbphoto aria-label="Сделать фото блока"></label>` : ""}</div>
@@ -1915,7 +1984,8 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         return `<section class="panel rblk" data-n="${b.n}"><div class="group-h" style="margin:0 0 8px"><h2><span class="code">${b.n}</span> ${esc(b.title)}</h2>${bl.st === "ok" ? '<span class="pill ok">принят</span>' : bl.st === "ret" ? '<span class="pill mid">вернули</span>' : `<span class="sub" style="white-space:nowrap">${bl.photos.length} фото</span>`}</div>
           ${bl.photos.length ? `<div class="photos">${bl.photos.map((p) => `<div class="ph"><button class="open" data-zoom="${p}" aria-label="Открыть фото"><img data-photo="${p}" alt="Фото блока ${esc(b.title)}"></button></div>`).join("")}</div>` : `<p class="sub">${bl.seed ? "Тестовые данные: фото нет." : "Фото ещё нет."}</p>`}
           ${bl.comment ? `<p class="sub">ДМ: «${esc(bl.comment)}»</p>` : ""}
-          ${bl.st === "ret" && bl.ret ? `<p class="sub" style="color:var(--mid);font-weight:600">Возврат: ${esc(bl.ret)}</p>` : ""}
+          ${bl.st === "ret" && bl.ret ? `<p class="sub" style="color:var(--mid);font-weight:600">Возврат: ${esc(bl.ret)}${bl.due ? ` · ${PRIO[bl.prio || 2].short} · исправить до ${dueLabel(bl)}` : ""}</p>` : ""}
+          ${(() => { const t = S().tasks.find((x) => x.id === rbTaskId(rp, b.n)); return t && t.status !== "accepted" && bl.st !== "ret" ? `<button class="row" data-task="${t.id}" style="padding:8px 0;min-height:0"><span class="main"><span class="t2">Задача ДМ · ${PRIO[t.prio].short} · до ${dueLabel(t)}${overdueDays(t) ? ` · <b style="color:var(--bad)">просрочена</b>` : ""}</span></span>${icon("right", "chev")}</button>` : ""; })()}
           ${thread(`rb:${rp.id}:${b.n}`, x.id, `Фотоотчёт ${x.id} · блок ${b.n}. ${b.title}`)}
           ${canRev && !bl.locked ? `<div class="rrev"><button class="btn good" data-rok="${b.n}" aria-pressed="${bl.st === "ok"}">${icon("check", "sm")}Принять</button><button class="btn danger" data-rno="${b.n}" aria-pressed="${bl.st === "ret"}">Вернуть</button></div>` : ""}
         </section>`;
@@ -1935,13 +2005,30 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const no = e.target.closest("[data-rno]");
       if (no) {
         const n = no.dataset.rno, bl = reportOf(route.p.id, route.p.week || weekStart()).blocks[n];
-        sheet(`<h2>Вернуть блок ${n}</h2><p class="sub">${esc(RB_BY[n].title)}. ДМ увидит ваш комментарий и переснимет блок.</p>
-          <div class="field"><label for="rret">Что переделать</label><textarea class="input" id="rret" placeholder="Например: на фото не видно торца целиком"></textarea></div><p class="err" id="rretErr" hidden></p>
-          <button class="btn danger block" data-go>Вернуть блок</button>`, (sh, close) => {
+        const dflt = (pr) => ymd(new Date(today0().getTime() + DUE_DAYS[pr] * DAY));
+        const f = { prio: bl.prio || 2, due: bl.due || dflt(bl.prio || 2), dueTime: bl.dueTime === undefined ? DUE_TIME : bl.dueTime };
+        sheet(`<h2>Задача ДМ по блоку ${n}</h2><p class="sub">${esc(RB_BY[n].title)}. Блок вернётся ДМ, а замечание станет задачей со сроком — с эскалацией, если срок пропущен.</p>
+          <div class="field"><label for="rret">Что не так и что исправить</label><textarea class="input" id="rret" rows="3" placeholder="Например: на торце туфли рядом с кроссовками, переставить и переснять">${esc(bl.ret || "")}</textarea></div>
+          <div class="field"><span class="lbl">Приоритет</span><div class="prio">${[1, 2, 3].map((pr) => `<button data-rprio="${pr}" aria-pressed="${f.prio === pr}"><b>${PRIO[pr].short}</b><span>${PRIO[pr].hint}</span></button>`).join("")}</div></div>
+          <div id="rdue">${dueFields("rb", f.due, f.dueTime)}</div>
+          <p class="err" id="rretErr" hidden></p>
+          <button class="btn danger block" data-go>Вернуть блок и поставить задачу</button>`, (sh, close) => {
+          sh.addEventListener("click", (ev) => {
+            const pb = ev.target.closest("[data-rprio]"); if (!pb) return;
+            f.prio = +pb.dataset.rprio; f.due = dflt(f.prio);
+            sh.querySelectorAll("[data-rprio]").forEach((b) => b.setAttribute("aria-pressed", String(b === pb)));
+            sh.querySelector("#d-rb").value = f.due;
+          });
+          sh.addEventListener("change", (ev) => {
+            if (ev.target.id === "d-rb") { if (ev.target.value) f.due = ev.target.value; else ev.target.value = f.due; }
+            if (ev.target.id === "dt-rb") f.dueTime = ev.target.value || "";
+          });
           sh.querySelector("[data-go]").addEventListener("click", () => {
-            const c = sh.querySelector("#rret").value.trim();
-            if (!c) { const er = sh.querySelector("#rretErr"); er.hidden = false; er.textContent = "Напишите, что переделать, — без этого блок не вернуть."; return; }
-            bl.st = "ret"; bl.ret = c; Store.save(); close(); render(false);
+            const c = sh.querySelector("#rret").value.trim(), er = sh.querySelector("#rretErr");
+            if (!c) { er.hidden = false; er.textContent = "Напишите, что исправить, — без этого задачу не поставить."; sh.querySelector("#rret").focus(); return; }
+            const when = dueAt(f);
+            if (when < new Date()) { er.hidden = false; er.textContent = "Срок уже прошёл — выберите дату и время позже текущих."; return; }
+            Object.assign(bl, { st: "ret", ret: c, prio: f.prio, due: f.due, dueTime: f.dueTime }); Store.save(); close(); render(false);
           });
         });
         return;
@@ -1949,14 +2036,27 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       const a = e.target.closest("[data-act]"); if (!a) return;
       if (a.dataset.act === "rsend") {
         const rp = ensureReport(me().store), now = new Date().toISOString();
-        for (const b of RB) { const bl = rp.blocks[b.n]; if (bl.st === "ret") { bl.st = undefined; bl.ret = ""; bl.seed = false; } }
-        rp.status = "review"; rp.submittedAt = now; Store.save(); toast("Фотоотчёт отправлен ДП"); render(true);
+        for (const b of RB) {
+          const bl = rp.blocks[b.n]; if (bl.st !== "ret") continue;
+          const t = S().tasks.find((x) => x.id === rbTaskId(rp, b.n));
+          if (t && (t.status === "open" || t.status === "returned")) { t.fix = { photos: bl.photos.slice(), comment: (bl.comment || "").trim(), at: now }; t.status = "review"; t.history.push({ at: now, by: me().login, act: "fixed", comment: t.fix.comment }); }
+          bl.st = undefined; bl.ret = ""; bl.seed = false;
+        }
+        rp.status = "review"; rp.submittedAt = now; if (DEVICE) rp.device = DEVICE; Store.save(); toast("Фотоотчёт отправлен ДП"); render(true);
       }
       if (a.dataset.act === "rfinish") {
         const rp = reportOf(route.p.id, route.p.week || weekStart()), bad = RB.filter((b) => rp.blocks[b.n].st === "ret").length;
-        for (const b of RB) { const bl = rp.blocks[b.n]; if (bl.st === "ok") bl.locked = true; }
+        const now = new Date().toISOString(), by = me().login;
+        for (const b of RB) {
+          const bl = rp.blocks[b.n], tid = rbTaskId(rp, b.n), t = S().tasks.find((x) => x.id === tid);
+          if (bl.st === "ok") { bl.locked = true; if (t && t.status !== "accepted") { t.status = "accepted"; t.history.push({ at: now, by, act: "accepted" }); } }
+          if (bl.st !== "ret") continue;
+          const due = bl.due || ymd(new Date(today0().getTime() + DUE_DAYS[bl.prio || 2] * DAY)), dueTime = bl.dueTime === undefined ? DUE_TIME : bl.dueTime;
+          if (!t) S().tasks.push({ id: tid, src: "report", report: rp.id, week: rp.week, block: b.n, store: rp.store, sec: b.n, text: `блок ${b.n}. ${b.title}`, comment: bl.ret, photos: bl.photos.slice(), prio: bl.prio || 2, due, dueTime, status: "open", createdAt: now, fix: null, history: [{ at: now, by, act: "created", comment: bl.ret }] });
+          else { Object.assign(t, { comment: bl.ret, prio: bl.prio || t.prio, due, dueTime, status: "returned", fix: null }); t.history.push({ at: now, by, act: "returned", comment: bl.ret }); }
+        }
         rp.status = bad ? "returned" : "accepted"; Store.save();
-        toast(bad ? `Возвращено блоков: ${bad}. ДМ получит уведомление` : "Фотоотчёт принят");
+        toast(bad ? `Возвращено блоков: ${bad} — задачи со сроком ушли ДМ` : "Фотоотчёт принят");
         back();
       }
     });
@@ -1991,7 +2091,35 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       avgMin: mins.length ? mins.reduce((a, b) => a + b, 0) / mins.length : null, fails: recent.length ? recent.reduce((a, v) => a + v.fails, 0) / recent.length : null,
       red: recent.filter((v) => v.crit || v.score < 75).length, behind: cover < frac - 0.15 && left.length > 0, cover };
   }
-  const visitRow = (v, who) => `<button class="row" data-visit="${v.id}"><span class="main"><span class="t1"><span class="code">${v.store}</span><span class="name">${esc(STORES[v.store].place)}</span>${v.seed ? '<span class="pill demo">тест</span>' : ""}</span><span class="t2">${dTime(v.startedAt)}${who ? " · " + esc(userBy(v.dp).short) : ""} · ${v.fails} ${plural(v.fails, "замечание", "замечания", "замечаний")}${v.crit ? " · критичное" : ""}${v.endedAt ? ` · ${Math.round((new Date(v.endedAt) - new Date(v.startedAt)) / 6e4)} мин` : ""}</span></span><span class="end">${scoreFig(v)}${v.seed ? "" : stagePill(v)}</span></button>`;
+  // устройство визита: первое у ДП / привычное / новое (подтверждает ДПР или ДР)
+  function devStatus(v) {
+    const d = v.device; if (!d || !d.id) return null;
+    const prev = S().visits.filter((x) => x.dp === v.dp && x.id !== v.id && x.status === "signed" && x.device && x.device.id && x.startedAt < v.startedAt);
+    const same = prev.filter((x) => x.device.id === d.id).length;
+    const cnt = {}; for (const x of prev) if (x.device.id !== d.id) cnt[x.device.id] = (cnt[x.device.id] || 0) + 1;
+    const others = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).slice(0, 2).map((id) => prev.find((x) => x.device.id === id).device); // два самых частых
+    const switched = !!(v.signDevice && v.signDevice.id !== d.id);
+    if (!prev.length) return { k: "first", label: "первое устройство", cls: "wait", same, others, switched };
+    if (same) return { k: "known", label: "привычное устройство", cls: "ok", same, others, switched };
+    return { k: "new", label: v.deviceOk ? "новое · подтверждено" : "новое устройство", cls: v.deviceOk ? "ok" : "bad", same, others, switched };
+  }
+  const devAlert = (v) => { const ds = devStatus(v); return !!ds && ((ds.k === "new" && !v.deviceOk) || (ds.switched && !v.deviceOk)); };
+  function devPanel(v) {
+    const u = me(), d = v.device, ds = devStatus(v);
+    if (!d) return `<section class="panel dev"><div class="dev-h"><h2>Устройство ДП</h2></div><p class="sub">Не записано: визит проведён в версии приложения без этой отметки.</p></section>`;
+    const meta = (x) => `${esc([x.os, x.browser].filter(Boolean).join(" · "))}${x.os || x.browser ? " · " : ""}<span class="devtag">${devTag(x)}</span>`;
+    const canOk = ["sales", "region"].includes(u.role) && devAlert(v);
+    return `<section class="panel dev"><div class="dev-h"><h2>Устройство ДП</h2><span class="pill ${ds.cls}">${ds.label}</span></div>
+      <div><div class="dev-model">${esc(devName(d))}</div><div class="sub">${meta(d)}</div></div>
+      ${ds.k === "known" ? `<p class="sub">С этого устройства ${esc(userBy(v.dp).short)} провёл ещё ${ds.same} ${plural(ds.same, "визит", "визита", "визитов")}.</p>` : ""}
+      ${ds.k === "first" ? `<p class="sub">Первый записанный визит ${esc(userBy(v.dp).short)} — с этого устройства будут сравниваться следующие.</p>` : ""}
+      ${ds.k === "new" ? `<p class="sub">Раньше ${esc(userBy(v.dp).short)} работал с ${ds.others.map((x) => `${esc(devName(x))} (${devTag(x)})`).join(", ")}. Новый телефон, другой браузер или очищенные данные — уточните у ДП.</p>` : ""}
+      ${ds.switched ? `<p class="sub" style="color:var(--mid);font-weight:600">Акт подписан с другого устройства: ${esc(devName(v.signDevice))} · ${meta(v.signDevice)}</p>` : ""}
+      ${v.deviceOk ? `<p class="hint">Подтвердил ${esc((userBy(v.deviceOk.by) || {}).short || v.deviceOk.by)}, ${dTime(v.deviceOk.at)}</p>` : ""}
+      ${canOk ? `<button class="btn block" data-devok="${v.id}">${icon("check", "sm")}Устройство подтверждаю</button>` : ""}
+    </section>`;
+  }
+  const visitRow = (v, who) => `<button class="row" data-visit="${v.id}"><span class="main"><span class="t1"><span class="code">${v.store}</span><span class="name">${esc(STORES[v.store].place)}</span>${v.seed ? '<span class="pill demo">тест</span>' : ""}</span><span class="t2">${dTime(v.startedAt)}${who ? " · " + esc(userBy(v.dp).short) : ""} · ${v.fails} ${plural(v.fails, "замечание", "замечания", "замечаний")}${v.crit ? " · критичное" : ""}${v.endedAt ? ` · ${Math.round((new Date(v.endedAt) - new Date(v.startedAt)) / 6e4)} мин` : ""}${v.device ? ` · ${esc(devName(v.device))}` : ""}${devAlert(v) ? ` · <b style="color:var(--bad)">новое устройство</b>` : ""}</span></span><span class="end">${scoreFig(v)}${v.seed ? "" : stagePill(v)}</span></button>`;
   function dpCard(st) {
     const max = Math.max(1, ...st.weeks);
     return `<div class="panel dpcard">
@@ -2031,6 +2159,21 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     return { title: "Магазины", sub: `${ROLE_NAME[u.role]} · регион СИБ`, body };
   };
 
+  // ---- Устройства ДП: с какого телефона проведён каждый визит
+  screens.devvisits = () => {
+    const u = me();
+    const vs = S().visits.filter((v) => v.status === "signed" && STORES[v.store] && daysBetween(v.startedAt, new Date()) <= 60).sort((a, b) => devAlert(b) - devAlert(a) || b.startedAt.localeCompare(a.startedAt));
+    const byDp = D.dps.map((dp) => { const mine = vs.filter((v) => v.dp === dp.login && v.device); const devs = [...new Map(mine.map((v) => [v.device.id, { d: v.device, n: mine.filter((x) => x.device.id === v.device.id).length }])).values()].sort((a, b) => b.n - a.n); return { dp, devs }; });
+    const alert = vs.filter(devAlert);
+    const body = `<button class="back" data-back>${icon("left", "sm")}Назад</button>
+      <div class="titlerow"><div><h1>Устройства ДП</h1><p>С какого телефона проведён каждый визит, за 60 дней. Приложение видит модель, систему и код устройства — номер телефона и IMEI браузеру недоступны.</p></div></div>
+      <section><div class="group-h"><h2>Ждут подтверждения</h2><span>${alert.length}</span></div>
+        ${alert.length ? `<div class="list">${alert.map((v) => visitRow(v, true)).join("")}</div>` : `<div class="empty"><b>Все визиты с привычных устройств</b>Визит с нового телефона появится здесь.</div>`}</section>
+      <section><div class="group-h"><h2>Телефоны по ДП</h2><span>${D.dps.length} ДП</span></div>
+        <div class="list">${byDp.map(({ dp, devs }) => `<div class="row" style="cursor:default"><span class="main"><span class="t1"><span class="name">${esc(dp.short)}</span><span class="sub">${esc(dp.div)}</span></span><span class="t2">${devs.length ? devs.map((x, i) => `${esc(devName(x.d))} <span class="devtag">${devTag(x.d)}</span> — ${x.n} ${plural(x.n, "визит", "визита", "визитов")}${i === 0 ? " (основное)" : ""}`).join("<br>") : "устройство ещё не записано"}</span></span></div>`).join("")}</div></section>`;
+    return { title: "Устройства", sub: `${ROLE_NAME[u.role]} · регион СИБ`, body };
+  };
+
   // ---- Region (директор по продажам / региона)
   let regionDiv = "all";
   function regionHome(u) {
@@ -2066,6 +2209,8 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
         <button data-tab="escal"><span>${fig(od.length, { cls: od.length ? "bad" : "ok" })}</span><span class="lbl">задач просрочено</span></button>
       </div>
       ${(() => { const rr = stores.map((s) => reportOf(s.id)); const acc = rr.filter((r) => rstat(r) === "accepted").length, rev = rr.filter((r) => rstat(r) === "review").length; return `<button class="row panel" data-tab="rlist" style="flex-direction:row;padding:12px 14px"><span class="main"><span class="t1"><span class="name">Фотоотчёт недели</span></span><span class="t2">${weekLabel()} · принято ${acc}, на проверке ${rev}, не сдано ${stores.length - acc - rev}</span></span><span class="end">${icon("right", "chev")}</span></button>`; })()}
+      ${(() => { const vs = S().visits.filter((v) => v.status === "signed" && inScope(STORES[v.store]) && sameMonth(v.startedAt)), alert = vs.filter(devAlert), rec = vs.filter((v) => v.device).length;
+        return `<button class="row panel" data-devlist style="flex-direction:row;padding:12px 14px"><span class="main"><span class="t1"><span class="name">Устройства ДП</span></span><span class="t2">${alert.length ? `<b style="color:var(--bad)">${alert.length} ${plural(alert.length, "визит", "визита", "визитов")} с нового устройства</b> · ` : ""}записано в ${rec} из ${vs.length} ${plural(vs.length, "визита", "визитов", "визитов")} за ${monthName()}</span></span><span class="end">${icon("right", "chev")}</span></button>`; })()}
       <section><div class="group-h"><h2>Посещения магазинов ДП</h2><span>${monthName()}</span></div>
         <div class="dpgrid">${D.dps.filter((d) => regionDiv === "all" || d.div === regionDiv).map((d) => dpCard(dpStats(d))).join("")}</div></section>
       <section><div class="group-h"><h2>Последние проверки</h2><span>чек-лист ДП</span></div>
@@ -2350,6 +2495,9 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   function bindCommon(root) {
     root.addEventListener("click", (e) => {
       const t = e.target;
+      if (t.closest("[data-devlist]")) return go("devvisits");
+      const dok = t.closest("[data-devok]");
+      if (dok) { const v = visitById(dok.dataset.devok); if (v) { v.deviceOk = { by: me().login, at: new Date().toISOString() }; Store.save(); toast("Устройство подтверждено"); render(false); } return; }
       if (t.closest("[data-back]")) return back();
       const tab = t.closest("[data-tab]"); if (tab) { stack.length = 0; route = { name: tab.dataset.tab, p: {} }; return render(true); }
       const st = t.closest("[data-store]:not([data-act])"); if (st) return go("store", { id: st.dataset.store });
@@ -2445,12 +2593,13 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     // без связи в магазине — работаем с сохранённым; с GitHub Pages и адресом сервера — всегда режим пилота
     const info = h || (remembered && location.protocol !== "file:" ? remembered : null) || (SRV.remote ? { stores: null } : null);
     if (info) { SRV.on = true; SRV.stores = info.stores; usePilotStores(info.stores); if (!h) SRV.status = "offline"; }
+    DEVICE = await readDevice();
     Store.init();
     render(false);
     syncThemeColor();
     if (SRV.on && S().session && S().session.token) Sync.start();
   })();
-  window.__audit = { Store, computeScore, TPL, ITEM, go, render }; // для проверки в консоли
+  window.__audit = { Store, computeScore, TPL, ITEM, go, render, get device() { return DEVICE; } }; // для проверки в консоли
 })();
 </script>
 </body>
