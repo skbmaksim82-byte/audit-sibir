@@ -26,7 +26,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 HERE = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("AUDIT_DB", HERE / "data" / "audit.db"))
 PHOTO_DIR = Path(os.environ.get("AUDIT_PHOTOS", HERE / "data" / "photos"))
@@ -154,7 +154,7 @@ app = FastAPI(title="Аудит магазина", version=VERSION, docs_url=Non
 if CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET", "POST", "PUT"],
-        allow_headers=["Authorization", "Content-Type"], max_age=86400,
+        allow_headers=["Authorization", "Content-Type", "tuna-skip-browser-warning"], max_age=86400,
     )
 
 

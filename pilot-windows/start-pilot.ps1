@@ -155,7 +155,7 @@ $variants = @(@("-d", $sub), @("-s", $label), @("-s", $sub))
 function Start-Tuna($v) {
   Start-Process $tuna -ArgumentList (@("http", "$Port") + $v) -WindowStyle Hidden -PassThru -RedirectStandardOutput $tlog -RedirectStandardError $telog
 }
-function Test-Public($u) { try { $r = Invoke-RestMethod "$u/api/health" -TimeoutSec 5; return $r.app -eq "audit-sibir" } catch { return $false } }
+function Test-Public($u) { try { $r = Invoke-RestMethod "$u/api/health" -Headers @{ "tuna-skip-browser-warning" = "1" } -TimeoutSec 5; return $r.app -eq "audit-sibir" } catch { return $false } }
 $url = $null; $tunArgs = $null
 foreach ($v in $variants) {
   $tun = Start-Tuna $v

@@ -616,7 +616,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   "use strict";
   const D = window.AUDIT_DATA;
   const TPL = D.template;
-  const APP_VERSION = "0.6.0";
+  const APP_VERSION = "0.6.1";
   const STORE_KEY = "audit.sib.v1";
   const PASSWORD = "1234";
   const DUE_DAYS = { 1: 3, 2: 7, 3: 14 };
@@ -719,9 +719,11 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     } catch (e) { return ""; }
   })();
   const SRV = { on: false, base: REMOTE_API ? REMOTE_API + "/api/" : "api/", remote: REMOTE_API, stores: null, status: "ok" };
+  // Бесплатный туннель tuna показывает браузеру страницу-предупреждение; этот заголовок её пропускает.
+  const srvHdr = (h = {}) => ({ "tuna-skip-browser-warning": "1", ...h });
   async function srvFetch(path, opt = {}) {
     const s = Store.get(), token = s && s.session && s.session.token;
-    const r = await fetch(SRV.base + path, { ...opt, cache: "no-store", headers: { ...(opt.headers || {}), ...(token ? { Authorization: "Bearer " + token } : {}) } });
+    const r = await fetch(SRV.base + path, { ...opt, cache: "no-store", headers: srvHdr({ ...(opt.headers || {}), ...(token ? { Authorization: "Bearer " + token } : {}) }) });
     if (r.status === 401 && token) { Sync.signedOut(); throw new Error("auth"); }
     return r;
   }
@@ -1339,7 +1341,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
       if (SRV.on) {
         const btn = root.querySelector('#loginForm button[type="submit"]'); btn.disabled = true; btn.textContent = "Вхожу…";
         try {
-          const r = await fetch(SRV.base + "login", { method: "POST", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ login: (login || "").trim().toLowerCase(), password: pw }) });
+          const r = await fetch(SRV.base + "login", { method: "POST", cache: "no-store", headers: srvHdr({ "Content-Type": "application/json" }), body: JSON.stringify({ login: (login || "").trim().toLowerCase(), password: pw }) });
           if (!r.ok) { err.hidden = false; err.textContent = await errText(r, "Не удалось войти"); return; }
           const j = await r.json();
           if (!userBy(j.user.login)) { err.hidden = false; err.textContent = "Этот логин не подходит к приложению. Обратитесь к администратору."; return; }
@@ -2420,7 +2422,7 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
   async function probeServer() {
     if (!SRV.remote && (location.protocol === "file:" || /github\.io$/.test(location.hostname))) return null;
     const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 4000);
-    try { const r = await fetch(SRV.base + "health", { cache: "no-store", signal: ctl.signal }); const j = r.ok ? await r.json() : null; return j && j.app === "audit-sibir" ? j : null; }
+    try { const r = await fetch(SRV.base + "health", { cache: "no-store", headers: srvHdr(), signal: ctl.signal }); const j = r.ok ? await r.json() : null; return j && j.app === "audit-sibir" ? j : null; }
     catch (e) { return null; } finally { clearTimeout(tm); }
   }
   function usePilotStores(ids) { // в пилоте видны только магазины, открытые на сервере
@@ -2430,6 +2432,12 @@ window.AUDIT_DATA = {"stores":[{"id":"11813","div":"Новосибирск 2","c
     D.dps.splice(0, D.dps.length, ...D.dps.filter((d) => divs.has(d.div)));
   }
   (async () => {
+    // tuna не пропускает запросы с другого адреса (preflight упирается в предупреждение),
+    // поэтому с GitHub Pages переходим на адрес сервера: он отдаёт это же приложение.
+    if (SRV.remote && location.origin !== SRV.remote) {
+      document.body.innerHTML = `<p style="font:16px system-ui;padding:24px">Открываю сервер пилота…</p>`;
+      location.replace(SRV.remote + "/"); return;
+    }
     let remembered = null; try { remembered = JSON.parse(localStorage.getItem("audit.srv.health") || "null"); } catch (e) { /* ignore */ }
     const h = await probeServer();
     if (h) { h.base = SRV.base; try { localStorage.setItem("audit.srv.health", JSON.stringify(h)); } catch (e) { /* ignore */ } }
